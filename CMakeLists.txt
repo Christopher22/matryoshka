@@ -21,7 +21,7 @@ target_link_libraries(Matryoshka CONAN_PKG::sqlite3)
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
     MESSAGE(STATUS "Build tests")
 
-    add_executable(MatryoshkaTest tests/main.cpp)
+    add_executable(MatryoshkaTest tests/main.cpp tests/sqlite.h)
     target_link_libraries(MatryoshkaTest Matryoshka CONAN_PKG::doctest)
     add_test(NAME MatryoshkaTestCmake COMMAND MatryoshkaTest)
 else ()
