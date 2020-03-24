@@ -57,12 +57,22 @@ class Blob<true> {
 	  std::memcpy(data_, shared.data(), size_);
 	}
   }
-
-  Blob(Blob const &) = delete;
-  Blob &operator=(Blob const &) = delete;
   inline Blob(Blob &&other) noexcept: data_(other.data_), size_(other.size_) {
 	other.data_ = nullptr;
   }
+
+  Blob(Blob const &) = delete;
+  Blob &operator=(Blob const &) = delete;
+  Blob &operator=(Blob &&other) noexcept {
+	size_ = other.size_;
+	if (data_ != nullptr) {
+	  delete[] data_;
+	}
+	data_ = other.data_;
+	other.data_ = nullptr;
+	return *this;
+  }
+
   ~Blob() noexcept {
 	delete[] data_;
   }

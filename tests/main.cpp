@@ -14,12 +14,14 @@ using namespace matryoshka::data::sqlite;
 
 TEST_SUITE ("SQLite") {
 TEST_CASE ("Testing database") {
-  Database data(":memory:");
-	  REQUIRE(static_cast<bool>(data));
+  auto database_creation = Database::create(":memory:");
+	  REQUIRE_MESSAGE(std::holds_alternative<Database>(database_creation),
+					  std::get<Status>(database_creation).Message());
+  Database data = std::move(std::get<Database>(database_creation));
 
   const Status status_table_creation =
 	  data("CREATE TABLE test (id integer PRIMARY KEY, name text NOT NULL, concurrency double, data blob)");
-	  REQUIRE_MESSAGE(status_table_creation, status_table_creation.message());
+	  REQUIRE_MESSAGE(status_table_creation, status_table_creation.Message());
 
 	  SUBCASE("IO") {
 	const std::string EXAMPLE_STRING(R"(Max\0 Mustermann)");
@@ -33,10 +35,10 @@ TEST_CASE ("Testing database") {
 	  auto statement_container = PreparedStatement::create(data, "INSERT INTO test VALUES(?, ?, ?, ?)");
 		  REQUIRE(std::holds_alternative<PreparedStatement>(statement_container));
 		  REQUIRE(std::get<PreparedStatement>(statement_container)([&](Query &query) {
-		CHECK(query.set(0, EXAMPLE_INT));
-		CHECK(query.set(1, EXAMPLE_STRING));
-		CHECK(query.set(2, EXAMPLE_DOUBLE));
-		CHECK(query.set(3, static_cast<Blob<false>>(EXAMPLE_BLOB)));
+		CHECK(query.Set(0, EXAMPLE_INT));
+		CHECK(query.Set(1, EXAMPLE_STRING));
+		CHECK(query.Set(2, EXAMPLE_DOUBLE));
+		CHECK(query.Set(3, static_cast<Blob<false>>(EXAMPLE_BLOB)));
 		return query();
 	  }));
 	}
@@ -48,12 +50,12 @@ TEST_CASE ("Testing database") {
 
 	  std::get<PreparedStatement>(statement_container)([&](Query &query) {
 			REQUIRE(query());
-			CHECK(query.get<int>(0) == EXAMPLE_INT);
-			CHECK(query.get<std::string_view>(1) == EXAMPLE_STRING);
-			CHECK(query.get<std::string>(1) == EXAMPLE_STRING);
-			CHECK(query.get<double>(2) == EXAMPLE_DOUBLE);
-			CHECK(query.get<Blob<true>>(3) == EXAMPLE_BLOB);
-			CHECK(query.get<Blob<false>>(3) == EXAMPLE_BLOB);
+			CHECK(query.Get<int>(0) == EXAMPLE_INT);
+			CHECK(query.Get<std::string_view>(1) == EXAMPLE_STRING);
+			CHECK(query.Get<std::string>(1) == EXAMPLE_STRING);
+			CHECK(query.Get<double>(2) == EXAMPLE_DOUBLE);
+			CHECK(query.Get<Blob<true>>(3) == EXAMPLE_BLOB);
+			CHECK(query.Get<Blob<false>>(3) == EXAMPLE_BLOB);
 		return Status();
 	  });
 	}

@@ -8,15 +8,15 @@
 
 namespace matryoshka::data::sqlite {
 
-std::string_view Status::message() const noexcept {
+std::string_view Status::Message() const noexcept {
   return std::string_view(sqlite3_errstr(status_));
 }
 
-bool Status::isSuccessful() const noexcept {
+bool Status::IsSuccessful() const noexcept {
   return status_ == SQLITE_OK || status_ == SQLITE_DONE || status_ == SQLITE_ROW;
 }
 
-bool Status::dataAvailable() const noexcept {
+bool Status::DataAvailable() const noexcept {
   return status_ == SQLITE_ROW;
 }
 

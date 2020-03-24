@@ -24,68 +24,68 @@ class Query {
   Query &operator=(Query const &) = delete;
   ~Query() noexcept;
 
-  [[nodiscard]] int numParameters() const noexcept;
-  Status reset() noexcept;
+  [[nodiscard]] int NumParameter() const noexcept;
+  Status Reset() noexcept;
   Status operator()() noexcept;
 
-  Status unset() noexcept;
-  Status unset(int index) noexcept;
-  Status set(int index, int value) noexcept;
-  Status set(int index, std::int_fast64_t value) noexcept;
-  Status set(int index, std::string_view value) noexcept;
-  Status set(int index, double value) noexcept;
-  Status set(int index, Blob<true> &&value);
-  Status set(int index, const Blob<false> &value);
+  Status Unset() noexcept;
+  Status Unset(int index) noexcept;
+  Status Set(int index, int value) noexcept;
+  Status Set(int index, std::int_fast64_t value) noexcept;
+  Status Set(int index, std::string_view value) noexcept;
+  Status Set(int index, double value) noexcept;
+  Status Set(int index, Blob<true> &&value);
+  Status Set(int index, const Blob<false> &value);
 
   template<typename T>
-  inline Status set(std::string_view name, T value) noexcept {
+  inline Status Set(std::string_view name, T value) noexcept {
 	const int index = this->_getIndex(name);
 	if (index == 0) {
 	  return Status(1);
 	}
-	return this->set(index - 1, value);
+	return this->Set(index - 1, value);
   }
 
   template<typename T>
-  [[nodiscard]] inline T get(int index) const {
+  [[nodiscard]] inline T Get(int index) const {
 	static_assert(false, "Reading of this type is not supported.");
   }
 
   template<>
-  [[nodiscard]] inline int get(int index) const {
-	return this->getInteger(index);
+  [[nodiscard]] inline int Get(int index) const {
+	return this->GetInteger(index);
   }
 
   template<>
-  [[nodiscard]] inline double get(int index) const {
-	return this->getDouble(index);
+  [[nodiscard]] inline double Get(int index) const {
+	return this->GetDouble(index);
   }
 
   template<>
-  [[nodiscard]] inline std::string_view get(int index) const {
-	return this->getText(index);
+  [[nodiscard]] inline std::string_view Get(int index) const {
+	return this->GetText(index);
   }
 
   template<>
-  [[nodiscard]] inline std::string get(int index) const {
-	return std::string(this->getText(index));
+  [[nodiscard]] inline std::string Get(int index) const {
+	return std::string(this->GetText(index));
   }
 
   template<>
-  [[nodiscard]] inline Blob<false> get(int index) const {
-	return this->getData(index);
+  [[nodiscard]] inline Blob<false> Get(int index) const {
+	return this->GetData(index);
   }
 
   template<>
-  [[nodiscard]] inline Blob<true> get(int index) const {
-	return Blob<true>(this->getData(index));
+  [[nodiscard]] inline Blob<true> Get(int index) const {
+	return Blob<true>(this->GetData(index));
   }
 
  protected:
-  [[nodiscard]] double getDouble(int index) const;
-  [[nodiscard]] int getInteger(int index) const;
-  [[nodiscard]] std::string_view getText(int index) const;
-  [[nodiscard]] Blob<false> getData(int index) const;
+  [[nodiscard]] double GetDouble(int index) const;
+  [[nodiscard]] int GetInteger(int index) const;
+  [[nodiscard]] std::string_view GetText(int index) const;
+  [[nodiscard]] Blob<false> GetData(int index) const;
 
  private:
   static void _deleteBlob(void *data);

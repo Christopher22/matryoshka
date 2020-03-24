@@ -13,20 +13,20 @@ class Status {
   constexpr inline explicit Status(int status = 0) : status_(status) {}
 
   template<typename C>
-  inline Status than(C callback) const noexcept {
+  inline Status Than(C callback) const noexcept {
 	return *this ? callback() : *this;
   }
 
-  [[nodiscard]] std::string_view message() const noexcept;
-  [[nodiscard]] bool isSuccessful() const noexcept;
-  [[nodiscard]] bool dataAvailable() const noexcept;
+  [[nodiscard]] std::string_view Message() const noexcept;
+  [[nodiscard]] bool IsSuccessful() const noexcept;
+  [[nodiscard]] bool DataAvailable() const noexcept;
 
   inline explicit operator int() const noexcept {
 	return status_;
   }
 
   inline explicit operator bool() const noexcept {
-	return this->isSuccessful();
+	return this->IsSuccessful();
   }
 
  private:
