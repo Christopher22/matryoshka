@@ -8,16 +8,14 @@
 #include "Status.h"
 
 #include <string_view>
+#include <variant>
 
 class sqlite3;
 
 namespace matryoshka::data::sqlite {
 class Database {
  public:
-  explicit Database(std::string_view path,
-					std::string meta_table = "matryoshka",
-					std::string data_table = "matryoshka_meta",
-					unsigned int version = 0) noexcept;
+  static std::variant<Database, Status> create(std::string_view path) noexcept;
   Database(Database &&other) noexcept;
   ~Database() noexcept;
   Database(Database const &) = delete;
@@ -25,25 +23,16 @@ class Database {
 
   Status operator()(std::string_view sql) noexcept;
   [[nodiscard]] std::string_view ErrorCode() noexcept;
-  [[nodiscard]] inline std::string_view MetaTable() const noexcept {
-	return meta_table_;
-  }
-  [[nodiscard]] inline std::string_view DataTable() const noexcept {
-	return data_table_;
-  }
-
-  inline explicit operator bool() noexcept {
-	return database_ != nullptr;
-  }
 
   inline explicit operator sqlite3 *() noexcept {
 	return database_;
   }
 
+ protected:
+  explicit Database(sqlite3 *database) noexcept;
+
  private:
   sqlite3 *database_;
-  std::string meta_table_, data_table_;
-  const unsigned int version_;
 };
 }
 

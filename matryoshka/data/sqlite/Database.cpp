@@ -7,26 +7,27 @@
 
 #include <sqlite3.h>
 
+#include <cassert>
+
 namespace matryoshka::data::sqlite {
 
-Database::Database(std::string_view path,
-				   std::string meta_table,
-				   std::string data_table,
-				   unsigned int version) noexcept
-	: database_(nullptr), meta_table_(std::move(meta_table)), data_table_(std::move(data_table)), version_(version) {
+Database::Database(sqlite3 *database) noexcept: database_(database) {
+  assert(database != nullptr);
+  sqlite3_extended_result_codes(database_, true);
+}
 
-  if (sqlite3_open_v2(path.data(), &database_, SQLITE_OPEN_READWRITE, nullptr) != SQLITE_OK) {
-	sqlite3_close_v2(database_);
-	database_ = nullptr;
+std::variant<Database, Status> Database::create(std::string_view path) noexcept {
+  sqlite3 *database;
+  Status status(sqlite3_open_v2(path.data(), &database, SQLITE_OPEN_READWRITE, nullptr));
+  if (status) {
+	return Database(database);
   } else {
-	sqlite3_extended_result_codes(database_, true);
+	sqlite3_close_v2(database);
+	return status;
   }
 }
 
-Database::Database(Database &&other) noexcept: database_(other.database_),
-											   data_table_(std::move(other.data_table_)),
-											   meta_table_(std::move(other.meta_table_)),
-											   version_(other.version_) {
+Database::Database(Database &&other) noexcept: database_(other.database_) {
   other.database_ = nullptr;
 }
 
