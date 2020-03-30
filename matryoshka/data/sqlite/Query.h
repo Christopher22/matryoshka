@@ -38,12 +38,24 @@ class Query {
   Status Set(int index, const Blob<false> &value);
 
   template<typename T>
-  inline Status Set(std::string_view name, T value) noexcept {
+  inline Status SetByName(std::string_view name, T value) noexcept {
 	const int index = this->_getIndex(name);
 	if (index == 0) {
 	  return Status(1);
 	}
 	return this->Set(index - 1, value);
+  }
+
+  template<typename Arg>
+  inline Status SetMulti(int index, Arg &&current) {
+	return this->Set(index, current);
+  }
+
+  template<typename Arg, typename... Args>
+  inline Status SetMulti(int index, Arg &&current, Args &&... rest) {
+	return this->Set(index, current).Than([&]() {
+	  return this->SetMulti(index + 1, std::forward<Args>(rest)...);
+	});
   }
 
   template<typename T>

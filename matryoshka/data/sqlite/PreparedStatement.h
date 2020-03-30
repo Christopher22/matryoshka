@@ -11,6 +11,8 @@
 #include <string_view>
 #include <variant>
 #include <functional>
+#include <optional>
+#include <utility>
 
 class sqlite3_stmt;
 
@@ -29,7 +31,7 @@ class PreparedStatement {
   }
 
   template<typename C>
-  inline Status operator()(C &callback) {
+  inline Status operator()(C callback) {
 	static_assert(std::is_constructible<std::function<Status(Query &)>, C>::value);
 
 	if (prepared_statement_ == nullptr) {
@@ -38,6 +40,25 @@ class PreparedStatement {
 	// ToDo: Insert mutex here to restrict concurrent access on single prepared statement
 	Query query(prepared_statement_);
 	return callback(query);
+  }
+
+  template<typename T, class... Args>
+  std::optional<T> Execute(Args &&... args) {
+	std::optional<T> result;
+	(*this)([&](sqlite::Query &query) {
+	  return query.SetMulti(0, std::forward<Args>(args)...).Than(query).Than([&]() {
+		result = query.Get<T>(0);
+		return Status();
+	  });
+	});
+	return result;
+  }
+
+  template<class... Args>
+  inline Status Execute(Args &&... args) {
+	return (*this)([&](sqlite::Query &query) {
+	  return query.SetMulti(0, std::forward<Args>(args)...).Than(query);
+	});
   }
 
  protected:
