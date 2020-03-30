@@ -13,7 +13,7 @@ class Status {
   constexpr inline explicit Status(int status = 0) : status_(status) {}
 
   template<typename C>
-  inline Status Than(C callback) const noexcept {
+  inline Status Than(C &callback) const noexcept {
 	return *this ? callback() : *this;
   }
 
