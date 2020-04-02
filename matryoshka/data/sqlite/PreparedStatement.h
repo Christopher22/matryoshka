@@ -19,7 +19,7 @@ class sqlite3_stmt;
 namespace matryoshka::data::sqlite {
 class PreparedStatement {
  public:
-  static std::variant<PreparedStatement, Status> create(Database &database, std::string_view command) noexcept;
+  static std::variant<PreparedStatement, Status> Create(Database &database, std::string_view command) noexcept;
 
   PreparedStatement(PreparedStatement &&other) noexcept;
   ~PreparedStatement() noexcept;
@@ -31,7 +31,7 @@ class PreparedStatement {
   }
 
   template<typename C>
-  inline Status operator()(C callback) {
+  inline Status operator()(C callback) const {
 	static_assert(std::is_constructible<std::function<Status(Query &)>, C>::value);
 
 	if (prepared_statement_ == nullptr) {

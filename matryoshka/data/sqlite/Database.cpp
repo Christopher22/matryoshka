@@ -45,7 +45,7 @@ Status Database::operator()(std::string_view sql) noexcept {
 	return Status(SQLITE_ERROR);
   }
 
-  auto prepared_statement = PreparedStatement::create(*this, sql);
+  auto prepared_statement = PreparedStatement::Create(*this, sql);
   if (PreparedStatement *statement = std::get_if<PreparedStatement>(&prepared_statement)) {
 	return (*statement)([&](Query &query) {
 	  return query();

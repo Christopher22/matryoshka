@@ -32,12 +32,12 @@ class Blob<false> {
   }
 
   template<bool O>
-  inline bool operator==(const Blob<O> &rhs) const {
+  inline bool operator==(const Blob<O> &rhs) const noexcept {
 	return size_ == rhs.size() && std::memcmp(data_, rhs.data(), size_) == 0;
   }
 
   template<bool O>
-  inline bool operator!=(const Blob<O> &rhs) const {
+  inline bool operator!=(const Blob<O> &rhs) const noexcept {
 	return !(rhs == *this);
   }
 
@@ -49,10 +49,11 @@ class Blob<false> {
 template<>
 class Blob<true> {
  public:
-  constexpr inline explicit Blob(int size) noexcept: data_(nullptr), size_(size) {}
-  constexpr inline Blob(unsigned char *data, int size) noexcept: data_(data), size_(size) {}
-  inline explicit Blob(const Blob<false> &shared) noexcept: data_(new unsigned char[shared.size()]),
-															size_(shared.size()) {
+  constexpr explicit Blob() noexcept: data_(nullptr), size_(0) {}
+  inline explicit Blob(int size) : data_(new unsigned char[size]), size_(size) {}
+  constexpr Blob(unsigned char *data, int size) noexcept: data_(data), size_(size) {}
+  inline explicit Blob(const Blob<false> &shared) : data_(new unsigned char[shared.size()]),
+													size_(shared.size()) {
 	if (shared) {
 	  std::memcpy(data_, shared.data(), size_);
 	}
@@ -78,6 +79,10 @@ class Blob<true> {
   }
 
   [[nodiscard]] inline unsigned char *data() const noexcept {
+	return data_;
+  }
+
+  [[nodiscard]] inline unsigned char *data() noexcept {
 	return data_;
   }
 
