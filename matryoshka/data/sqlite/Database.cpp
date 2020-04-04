@@ -55,4 +55,16 @@ Status Database::operator()(std::string_view sql) noexcept {
   }
 }
 
+int Database::MaximalDataSize() const noexcept {
+  return sqlite3_limit(database_, SQLITE_LIMIT_LENGTH, -1);
+}
+
+bool Database::SetMaximalDataSize(int new_size) noexcept {
+  if (new_size <= 0) {
+	return false;
+  }
+  sqlite3_limit(database_, SQLITE_LIMIT_LENGTH, new_size);
+  return this->MaximalDataSize() == new_size;
+}
+
 }

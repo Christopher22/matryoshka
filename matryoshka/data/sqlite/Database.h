@@ -20,6 +20,9 @@ class Database {
   Database(Database const &) = delete;
   Database &operator=(Database const &) = delete;
 
+  [[nodiscard]] int MaximalDataSize() const noexcept;
+  bool SetMaximalDataSize(int new_size) noexcept;
+
   Status operator()(std::string_view sql) noexcept;
   [[nodiscard]] std::string_view ErrorCode() noexcept;
 
