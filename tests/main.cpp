@@ -6,3 +6,4 @@
 #include <doctest/doctest.h>
 
 #include "Sqlite.h"
+#include "Path.h"
