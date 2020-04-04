@@ -24,7 +24,7 @@ class Database {
   Status operator()(std::string_view sql) noexcept;
   [[nodiscard]] std::string_view ErrorCode() noexcept;
 
-  inline sqlite3 *Raw() const noexcept {
+  [[nodiscard]] inline sqlite3 *Raw() const noexcept {
 	return database_;
   }
 

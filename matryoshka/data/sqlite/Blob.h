@@ -15,11 +15,11 @@ class Blob<false> {
  public:
   constexpr inline Blob(const unsigned char *data, int size) noexcept: data_(data), size_(size) {}
 
-  [[nodiscard]] inline int size() const noexcept {
+  [[nodiscard]] inline int Size() const noexcept {
 	return size_;
   }
 
-  [[nodiscard]] inline const unsigned char *data() const noexcept {
+  [[nodiscard]] inline const unsigned char *Data() const noexcept {
 	return data_;
   }
 
@@ -33,7 +33,7 @@ class Blob<false> {
 
   template<bool O>
   inline bool operator==(const Blob<O> &rhs) const noexcept {
-	return size_ == rhs.size() && std::memcmp(data_, rhs.data(), size_) == 0;
+	return size_ == rhs.Size() && std::memcmp(data_, rhs.Data(), size_) == 0;
   }
 
   template<bool O>
@@ -52,10 +52,10 @@ class Blob<true> {
   constexpr explicit Blob() noexcept: data_(nullptr), size_(0) {}
   inline explicit Blob(int size) : data_(new unsigned char[size]), size_(size) {}
   constexpr Blob(unsigned char *data, int size) noexcept: data_(data), size_(size) {}
-  inline explicit Blob(const Blob<false> &shared) : data_(new unsigned char[shared.size()]),
-													size_(shared.size()) {
+  inline explicit Blob(const Blob<false> &shared) : data_(new unsigned char[shared.Size()]),
+													size_(shared.Size()) {
 	if (shared) {
-	  std::memcpy(data_, shared.data(), size_);
+	  std::memcpy(data_, shared.Data(), size_);
 	}
   }
   inline Blob(Blob &&other) noexcept: data_(other.data_), size_(other.size_) {
@@ -66,9 +66,8 @@ class Blob<true> {
   Blob &operator=(Blob const &) = delete;
   Blob &operator=(Blob &&other) noexcept {
 	size_ = other.size_;
-	if (data_ != nullptr) {
-	  delete[] data_;
-	}
+	delete[] data_;
+
 	data_ = other.data_;
 	other.data_ = nullptr;
 	return *this;
@@ -78,21 +77,21 @@ class Blob<true> {
 	delete[] data_;
   }
 
-  [[nodiscard]] inline unsigned char *data() const noexcept {
+  [[nodiscard]] inline unsigned char *Data() const noexcept {
 	return data_;
   }
 
-  [[nodiscard]] inline unsigned char *data() noexcept {
+  [[nodiscard]] inline unsigned char *Data() noexcept {
 	return data_;
   }
 
-  [[nodiscard]] inline unsigned char *release() {
+  [[nodiscard]] inline unsigned char *Release() {
 	unsigned char *tmp = data_;
 	data_ = nullptr;
 	return tmp;
   }
 
-  [[nodiscard]] inline int size() const noexcept {
+  [[nodiscard]] inline int Size() const noexcept {
 	return size_;
   }
 
@@ -118,9 +117,9 @@ class Blob<true> {
 	return Blob<false>(data_, size_);
   }
 
-  static Blob<true> filled(int num_bytes, unsigned char value = 0) {
+  static Blob<true> Filled(int num_bytes, unsigned char value = 0) {
 	Blob<true> data(new unsigned char[num_bytes], num_bytes);
-	std::fill_n(data.data(), num_bytes, value);
+	std::fill_n(data.Data(), num_bytes, value);
 	return data;
   }
 

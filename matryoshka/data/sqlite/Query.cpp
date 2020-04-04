@@ -48,7 +48,7 @@ Status Query::Set(int index, double value) noexcept {
 
 Status Query::Set(int index, Blob<true> &&value) {
   // Unique pointer is used for indicating the shifted ownership
-  return Status(sqlite3_bind_blob(prepared_statement_, index + 1, value.release(), value.size(), &Query::_deleteBlob));
+  return Status(sqlite3_bind_blob(prepared_statement_, index + 1, value.Release(), value.Size(), &Query::_deleteBlob));
 }
 
 Status Query::Set(int index, const Blob<false> &value) {
@@ -56,7 +56,7 @@ Status Query::Set(int index, const Blob<false> &value) {
   return Status(sqlite3_bind_blob(prepared_statement_,
 								  index + 1,
 								  static_cast<const unsigned char *>(value),
-								  value.size(),
+								  value.Size(),
 								  SQLITE_TRANSIENT));
 }
 
