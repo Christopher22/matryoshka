@@ -31,6 +31,10 @@ class Result : public std::variant<T, Status> {
   inline explicit operator bool() const noexcept {
 	return std::holds_alternative<T>(*this);
   }
+
+  inline T *operator->() noexcept {
+	return std::get_if<T>(this);
+  }
 };
 }
 #endif //MATRYOSHKA_MATRYOSHKA_DATA_SQLITE_RESULT_H_
