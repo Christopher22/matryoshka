@@ -8,8 +8,7 @@
 #include "Status.h"
 #include "Database.h"
 #include "Blob.h"
-
-#include <variant>
+#include "Result.h"
 
 class sqlite3_blob;
 
@@ -18,11 +17,11 @@ class BlobReader {
  public:
   using RowId = std::int_fast64_t;
 
-  static std::variant<BlobReader, Status> Open(const Database &database,
+  static Result<BlobReader> Open(const Database &database,
 											   RowId blob_id,
 											   std::string_view table,
 											   std::string_view column) noexcept;
-  static std::variant<BlobReader, Status> Open(BlobReader &&old_handle, RowId blob_id) noexcept;
+  static Result<BlobReader> Open(BlobReader &&old_handle, RowId blob_id) noexcept;
 
   BlobReader(BlobReader &&other) noexcept;
   ~BlobReader() noexcept;

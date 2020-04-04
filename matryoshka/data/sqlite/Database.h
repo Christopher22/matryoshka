@@ -5,17 +5,16 @@
 #ifndef MATRYOSHKA_MATRYOSHKA_DATA_DATABASE_H_
 #define MATRYOSHKA_MATRYOSHKA_DATA_DATABASE_H_
 
-#include "Status.h"
+#include "Result.h"
 
 #include <string_view>
-#include <variant>
 
 class sqlite3;
 
 namespace matryoshka::data::sqlite {
 class Database {
  public:
-  static std::variant<Database, Status> Create(std::string_view path = ":memory:") noexcept;
+  static Result<Database> Create(std::string_view path = ":memory:") noexcept;
   Database(Database &&other) noexcept;
   ~Database() noexcept;
   Database(Database const &) = delete;

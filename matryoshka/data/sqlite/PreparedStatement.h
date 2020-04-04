@@ -7,6 +7,7 @@
 
 #include "Database.h"
 #include "Query.h"
+#include "Result.h"
 
 #include <string_view>
 #include <variant>
@@ -19,7 +20,7 @@ class sqlite3_stmt;
 namespace matryoshka::data::sqlite {
 class PreparedStatement {
  public:
-  static std::variant<PreparedStatement, Status> Create(Database &database, std::string_view command) noexcept;
+  static Result<PreparedStatement> Create(Database &database, std::string_view command) noexcept;
 
   PreparedStatement(PreparedStatement &&other) noexcept;
   ~PreparedStatement() noexcept;

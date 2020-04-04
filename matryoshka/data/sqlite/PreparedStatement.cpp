@@ -8,8 +8,8 @@
 
 namespace matryoshka::data::sqlite {
 
-std::variant<PreparedStatement, Status> PreparedStatement::Create(Database &database,
-																  std::string_view command) noexcept {
+Result<PreparedStatement> PreparedStatement::Create(Database &database,
+													std::string_view command) noexcept {
   sqlite3_stmt *prepared_statement;
   const Status result = Status(sqlite3_prepare_v3(database.Raw(),
 												  command.data(),
@@ -18,10 +18,10 @@ std::variant<PreparedStatement, Status> PreparedStatement::Create(Database &data
 												  &prepared_statement,
 												  nullptr));
   if (result) {
-	return PreparedStatement(prepared_statement);
+	return Result<PreparedStatement>(PreparedStatement(prepared_statement));
   } else {
 	sqlite3_finalize(prepared_statement);
-	return result;
+	return Result<PreparedStatement>(result);
   }
 }
 

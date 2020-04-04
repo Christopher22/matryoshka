@@ -16,14 +16,14 @@ Database::Database(sqlite3 *database) noexcept: database_(database) {
   sqlite3_extended_result_codes(database_, true);
 }
 
-std::variant<Database, Status> Database::Create(std::string_view path) noexcept {
+Result<Database> Database::Create(std::string_view path) noexcept {
   sqlite3 *database;
   Status status(sqlite3_open_v2(path.data(), &database, SQLITE_OPEN_READWRITE, nullptr));
   if (status) {
-	return Database(database);
+	return Result<Database>(Database(database));
   } else {
 	sqlite3_close_v2(database);
-	return status;
+	return Result<Database>(status);
   }
 }
 

@@ -17,10 +17,10 @@ BlobReader::BlobReader(BlobReader &&other) noexcept: handle_(other.handle_) {
   other.handle_ = nullptr;
 }
 
-std::variant<BlobReader, Status> BlobReader::Open(const Database &database,
-												  BlobReader::RowId blob_id,
-												  std::string_view table,
-												  std::string_view column) noexcept {
+Result<BlobReader> BlobReader::Open(const Database &database,
+									BlobReader::RowId blob_id,
+									std::string_view table,
+									std::string_view column) noexcept {
 
   sqlite3_blob *handle;
   const auto status = Status(sqlite3_blob_open(
@@ -33,18 +33,18 @@ std::variant<BlobReader, Status> BlobReader::Open(const Database &database,
 	  &handle));
 
   if (status) {
-	return BlobReader(handle);
+	return Result<BlobReader>(BlobReader(handle));
   } else {
-	return status;
+	return Result<BlobReader>(status);
   }
 }
 
-std::variant<BlobReader, Status> BlobReader::Open(BlobReader &&old_handle, BlobReader::RowId blob_id) noexcept {
+Result<BlobReader> BlobReader::Open(BlobReader &&old_handle, BlobReader::RowId blob_id) noexcept {
   const auto status = Status(sqlite3_blob_reopen(old_handle.handle_, blob_id));
   if (status) {
-	return BlobReader(old_handle.handle_);
+	return Result<BlobReader>(BlobReader(old_handle.handle_));
   } else {
-	return status;
+	return Result<BlobReader>(status);
   }
 }
 
