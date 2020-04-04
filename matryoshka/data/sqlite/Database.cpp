@@ -16,7 +16,7 @@ Database::Database(sqlite3 *database) noexcept: database_(database) {
   sqlite3_extended_result_codes(database_, true);
 }
 
-std::variant<Database, Status> Database::create(std::string_view path) noexcept {
+std::variant<Database, Status> Database::Create(std::string_view path) noexcept {
   sqlite3 *database;
   Status status(sqlite3_open_v2(path.data(), &database, SQLITE_OPEN_READWRITE, nullptr));
   if (status) {

@@ -15,7 +15,7 @@ class sqlite3;
 namespace matryoshka::data::sqlite {
 class Database {
  public:
-  static std::variant<Database, Status> create(std::string_view path) noexcept;
+  static std::variant<Database, Status> Create(std::string_view path = ":memory:") noexcept;
   Database(Database &&other) noexcept;
   ~Database() noexcept;
   Database(Database const &) = delete;
