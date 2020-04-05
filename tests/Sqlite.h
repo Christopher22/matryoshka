@@ -40,10 +40,10 @@ TEST_CASE ("Testing database" * doctest::expected_failures(14)) {
   );
 
   // Create the insert statement
-  auto insert_statement = PreparedStatement::Create(data, "INSERT INTO test VALUES(?, ?, ?, ?)");
-	  REQUIRE(insert_statement);
+  auto insert_statement = PreparedStatement::Insert(data, "test", { "id", "name", "concurrency", "data" });
+  REQUIRE(insert_statement);
 
-	  SUBCASE("IO") {
+  SUBCASE("IO") {
 	// Write data
 	{
 		  SUBCASE("Manual") {

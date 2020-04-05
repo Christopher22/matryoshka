@@ -14,6 +14,7 @@
 #include <functional>
 #include <optional>
 #include <utility>
+#include <initializer_list>
 
 class sqlite3_stmt;
 
@@ -21,6 +22,9 @@ namespace matryoshka::data::sqlite {
 class PreparedStatement {
  public:
   static Result<PreparedStatement> Create(Database &database, std::string_view command) noexcept;
+  static Result<PreparedStatement> Insert(Database &database,
+										  std::string_view table,
+										  std::initializer_list<std::string_view> columns) noexcept;
 
   PreparedStatement(PreparedStatement &&other) noexcept;
   ~PreparedStatement() noexcept;

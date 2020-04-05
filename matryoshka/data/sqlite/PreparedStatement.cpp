@@ -6,6 +6,8 @@
 
 #include <sqlite3.h>
 
+#include <sstream>
+
 namespace matryoshka::data::sqlite {
 
 Result<PreparedStatement> PreparedStatement::Create(Database &database,
@@ -32,5 +34,36 @@ PreparedStatement::PreparedStatement(PreparedStatement &&other) noexcept: prepar
 
 PreparedStatement::~PreparedStatement() noexcept {
   sqlite3_finalize(prepared_statement_);
+}
+
+Result<PreparedStatement> PreparedStatement::Insert(Database &database,
+													std::string_view table,
+													std::initializer_list<std::string_view> columns) noexcept {
+  std::stringstream stream;
+  stream << "INSERT INTO " << table << " (";
+
+  // Append the columns
+  std::size_t i = 0;
+  for (auto column: columns) {
+	if (i > 0) {
+	  stream << ", ";
+	}
+	stream << column;
+	++i;
+  }
+
+  // Append named parameters for the values
+  stream << ") VALUES (";
+  i = 0;
+  for (auto column: columns) {
+	if (i > 0) {
+	  stream << ", ";
+	}
+	stream << ":" << column;
+	++i;
+  }
+
+  stream << ")";
+  return PreparedStatement::Create(database, stream.str());
 }
 }
