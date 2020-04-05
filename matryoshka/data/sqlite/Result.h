@@ -11,21 +11,39 @@
 
 namespace matryoshka::data::sqlite {
 
-template<typename T>
-class Result : public std::variant<T, Status> {
+template<typename T = std::monostate, typename S = Status>
+class Result : public std::variant<T, S> {
  public:
-  constexpr explicit Result(T &&data) noexcept: std::variant<T, Status>(std::move(data)) {}
-  constexpr explicit Result(Status status) noexcept: std::variant<T, Status>(status) {}
+  constexpr explicit Result(T &&data) noexcept: std::variant<T, S>(std::move(data)) {}
+  constexpr explicit Result(S status) noexcept: std::variant<T, S>(status) {}
 
-  template<typename C>
-  inline Status Than(C &callback) {
-	T *value = std::get_if<T>(this);
-	return value != nullptr ? callback(std::move(*value)) : std::get<Status>(*this);
+  template<typename X>
+  static inline X Get(Result<X> &&result) {
+	return std::get<X>(std::move(result));
   }
 
-  explicit inline operator Status() const noexcept {
-	const Status *status = std::get_if<Status>(this);
-	return status != nullptr ? *status : Status();
+  template<typename Head, typename... Tail>
+  static inline S Check(const Head &result, const Tail &...results) noexcept {
+	if (result) {
+	  if constexpr(sizeof...(results) > 0) {
+		return Check(results...);
+	  } else {
+		return S();
+	  }
+	} else {
+	  return static_cast<S>(result);
+	}
+  }
+
+  template<typename C>
+  inline S Than(C &callback) {
+	T *value = std::get_if<T>(this);
+	return value != nullptr ? callback(std::move(*value)) : std::get<S>(*this);
+  }
+
+  explicit inline operator S() const noexcept {
+	const S *status = std::get_if<S>(this);
+	return status != nullptr ? *status : S();
   }
 
   inline explicit operator bool() const noexcept {
