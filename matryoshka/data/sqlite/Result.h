@@ -8,6 +8,9 @@
 #include "Status.h"
 
 #include <variant>
+#ifndef NDEBUG
+#include <iostream>
+#endif
 
 namespace matryoshka::data::sqlite {
 
@@ -15,7 +18,21 @@ template<typename T = std::monostate, typename S = Status>
 class Result : public std::variant<T, S> {
  public:
   constexpr explicit Result(T &&data) noexcept: std::variant<T, S>(std::move(data)) {}
-  constexpr explicit Result(S status) noexcept: std::variant<T, S>(status) {}
+  constexpr explicit Result(S status) noexcept: std::variant<T, S>(status) {
+#ifndef NDEBUG
+	std::cerr << "[WARNING] Failure occurred: " << status << std::endl;
+#endif
+  }
+
+  template<typename... Args>
+  static inline Result<T, S> Ok(Args &&... args) {
+	return Result<T, S>(std::move(T(std::forward<Args>(args)...)));
+  }
+
+  template<typename... Args>
+  static inline Result<T, S> Fail(Args &&... args) {
+	return Result<T, S>(S(std::forward<Args>(args)...));
+  }
 
   template<typename X>
   static inline X Get(Result<X> &&result) {

@@ -6,6 +6,7 @@
 #define MATRYOSHKA_MATRYOSHKA_DATA_SQLITE_STATUS_H_
 
 #include <string_view>
+#include <iostream>
 
 namespace matryoshka::data::sqlite {
 class Status {
@@ -27,6 +28,11 @@ class Status {
 
   inline explicit operator bool() const noexcept {
 	return this->IsSuccessful();
+  }
+
+  inline friend std::ostream &operator<<(std::ostream &output, const Status &status) {
+	output << status.Message();
+	return output;
   }
 
  private:
