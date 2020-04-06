@@ -67,4 +67,8 @@ bool Database::SetMaximalDataSize(int new_size) noexcept {
   return this->MaximalDataSize() == new_size;
 }
 
+Database::RowId Database::LastInsertedRow() const noexcept {
+  return sqlite3_last_insert_rowid(database_);
+}
+
 }
