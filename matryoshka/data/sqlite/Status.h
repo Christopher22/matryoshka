@@ -35,6 +35,14 @@ class Status {
 	return output;
   }
 
+  inline bool operator==(const Status &rhs) const {
+	return status_ == rhs.status_;
+  }
+
+  inline bool operator!=(const Status &rhs) const {
+	return !(rhs == *this);
+  }
+
  private:
   int status_;
 };
