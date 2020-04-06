@@ -8,3 +8,4 @@
 #include "Sqlite.h"
 #include "Path.h"
 #include "MetaTable.h"
+#include "FileSystem.h"
