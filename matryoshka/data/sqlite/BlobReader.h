@@ -15,13 +15,11 @@ class sqlite3_blob;
 namespace matryoshka::data::sqlite {
 class BlobReader {
  public:
-  using RowId = std::int_fast64_t;
-
   static Result<BlobReader> Open(const Database &database,
-											   RowId blob_id,
-											   std::string_view table,
-											   std::string_view column) noexcept;
-  static Result<BlobReader> Open(BlobReader &&old_handle, RowId blob_id) noexcept;
+								 Database::RowId blob_id,
+								 std::string_view table,
+								 std::string_view column) noexcept;
+  static Result<BlobReader> Open(BlobReader &&old_handle, Database::RowId blob_id) noexcept;
 
   BlobReader(BlobReader &&other) noexcept;
   ~BlobReader() noexcept;

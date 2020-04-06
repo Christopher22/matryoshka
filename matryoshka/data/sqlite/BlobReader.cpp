@@ -18,7 +18,7 @@ BlobReader::BlobReader(BlobReader &&other) noexcept: handle_(other.handle_) {
 }
 
 Result<BlobReader> BlobReader::Open(const Database &database,
-									BlobReader::RowId blob_id,
+									Database::RowId blob_id,
 									std::string_view table,
 									std::string_view column) noexcept {
 
@@ -39,10 +39,13 @@ Result<BlobReader> BlobReader::Open(const Database &database,
   }
 }
 
-Result<BlobReader> BlobReader::Open(BlobReader &&old_handle, BlobReader::RowId blob_id) noexcept {
+Result<BlobReader> BlobReader::Open(BlobReader &&old_handle, Database::RowId blob_id) noexcept {
   const auto status = Status(sqlite3_blob_reopen(old_handle.handle_, blob_id));
   if (status) {
-	return Result<BlobReader>(BlobReader(old_handle.handle_));
+	sqlite3_blob *handle = old_handle.handle_;
+	assert(handle != nullptr);
+	old_handle.handle_ = nullptr;
+	return Result<BlobReader>(BlobReader(handle));
   } else {
 	return Result<BlobReader>(status);
   }
@@ -63,8 +66,10 @@ Blob<true> BlobReader::Read(int length, int offset) const {
 }
 
 Status BlobReader::Read(Blob<true> &destination, int offset, int destination_offset, int num_bytes) const {
-  assert(destination.Size() > 0);
+  assert(offset >= 0);
   assert(destination_offset >= 0);
+  assert(offset + num_bytes <= this->Size());
+  assert(destination_offset + num_bytes <= destination.Size());
 
   unsigned char *data = destination.Data();
   return Status(sqlite3_blob_read(
