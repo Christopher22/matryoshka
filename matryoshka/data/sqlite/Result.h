@@ -18,11 +18,7 @@ template<typename T = std::monostate, typename S = Status>
 class Result : public std::variant<T, S> {
  public:
   constexpr explicit Result(T &&data) noexcept: std::variant<T, S>(std::move(data)) {}
-  constexpr explicit Result(S status) noexcept: std::variant<T, S>(status) {
-#ifndef NDEBUG
-	std::cerr << "[WARNING] Failure occurred: " << status << std::endl;
-#endif
-  }
+  constexpr explicit Result(S status) noexcept: std::variant<T, S>(status) {}
 
   template<typename... Args>
   static inline Result<T, S> Ok(Args &&... args) {
@@ -31,7 +27,11 @@ class Result : public std::variant<T, S> {
 
   template<typename... Args>
   static inline Result<T, S> Fail(Args &&... args) {
-	return Result<T, S>(S(std::forward<Args>(args)...));
+	const S status_code(std::forward<Args>(args)...);
+#ifndef NDEBUG
+	std::cerr << "[WARNING] Failure occurred: " << status_code << std::endl;
+#endif
+	return Result<T, S>(status_code);
   }
 
   template<typename X>
@@ -69,6 +69,36 @@ class Result : public std::variant<T, S> {
 
   inline T *operator->() noexcept {
 	return std::get_if<T>(this);
+  }
+
+  inline bool operator==(const S &value) const {
+	const S *inner_value = std::get_if<S>(this);
+	return inner_value != nullptr && *inner_value == value;
+  }
+
+  inline bool operator!=(const S &value) const {
+	return !(rhs == *this);
+  }
+
+  inline bool operator==(const T &value) const {
+	const T *inner_value = std::get_if<T>(this);
+	return inner_value != nullptr && *inner_value == value;
+  }
+
+  inline bool operator!=(const T &value) const {
+	return !(rhs == *this);
+  }
+
+  bool operator==(const Result<T, S> &rhs) const {
+	const T *value1 = std::get_if<T>(this), value_other = std::get_if<T>(&rhs);
+	if (value1 != nullptr && value_other != nullptr && *value1 == *value_other) {
+	  return true;
+	}
+	return value1 == nullptr && value_other == nullptr && *std::get_if<S>(this) == *std::get_if<S>(&rhs);
+  }
+
+  inline bool operator!=(const Result<T, S> &rhs) const {
+	return !(rhs == *this);
   }
 };
 }
