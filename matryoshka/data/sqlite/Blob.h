@@ -5,6 +5,8 @@
 #ifndef MATRYOSHKA_MATRYOSHKA_DATA_SQLITE_BLOB_H_
 #define MATRYOSHKA_MATRYOSHKA_DATA_SQLITE_BLOB_H_
 
+#include <cassert>
+
 namespace matryoshka::data::sqlite {
 
 template<bool HasOwnership>
@@ -41,6 +43,10 @@ class Blob<false> {
 	return !(rhs == *this);
   }
 
+  [[nodiscard]] const unsigned char &operator[](int index) const noexcept {
+	return data_[index];
+  }
+
  protected:
   const unsigned char *data_;
   int size_;
@@ -54,7 +60,7 @@ class Blob<true> {
   constexpr Blob(unsigned char *data, int size) noexcept: data_(data), size_(size) {}
   inline explicit Blob(const Blob<false> &shared) : data_(new unsigned char[shared.Size()]),
 													size_(shared.Size()) {
-	if (shared) {
+	if (data_ && shared) {
 	  std::memcpy(data_, shared.Data(), size_);
 	}
   }
@@ -77,6 +83,19 @@ class Blob<true> {
 	delete[] data_;
   }
 
+  [[nodiscard]] Blob<true> Copy() const {
+	Blob<true> result(size_);
+	if (result) {
+	  std::memcpy(result.data_, data_, size_);
+	}
+	return result;
+  }
+
+  [[nodiscard]] inline Blob<false> Part(int length, int onset = 0) {
+	assert(onset + length <= size_);
+	return Blob<false>(&data_[onset], length);
+  }
+
   [[nodiscard]] inline unsigned char *Data() const noexcept {
 	return data_;
   }
@@ -93,6 +112,10 @@ class Blob<true> {
 
   [[nodiscard]] inline int Size() const noexcept {
 	return size_;
+  }
+
+  [[nodiscard]] unsigned char &operator[](int index) noexcept {
+	return data_[index];
   }
 
   template<bool O>
