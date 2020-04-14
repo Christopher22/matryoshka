@@ -23,12 +23,14 @@ FileSystem::FileSystem(sqlite::Database &&database,
 					   sqlite::PreparedStatement &&chunk_statement,
 					   sqlite::PreparedStatement &&header_statement,
 					   sqlite::PreparedStatement &&blob_statement,
+					   sqlite::PreparedStatement &&glob_statement,
 					   util::MetaTable meta_table) noexcept
 	: database_(std::move(database)),
 	  handle_statement_(std::move(handle_statement)),
 	  chunk_statement_(std::move(chunk_statement)),
 	  header_statement_(std::move(header_statement)),
 	  blob_statement_(std::move(blob_statement)),
+	  glob_statement_(std::move(glob_statement)),
 	  meta_(std::move(meta_table)) {
   assert(handle_statement_ && chunk_statement_ && header_statement_ && blob_statement_);
 }
@@ -38,6 +40,7 @@ FileSystem::FileSystem(FileSystem &&other) noexcept: database_(std::move(other.d
 													 chunk_statement_(std::move(other.chunk_statement_)),
 													 header_statement_(std::move(other.header_statement_)),
 													 blob_statement_(std::move(other.blob_statement_)),
+													 glob_statement_(std::move(other.glob_statement_)),
 													 meta_(std::move(other.meta_)) {
 }
 
@@ -47,6 +50,7 @@ Result<FileSystem> FileSystem::Open(sqlite::Database &&database) noexcept {
   static constexpr std::string_view SQL_CREATE_DATA =
 	  "CREATE TABLE IF NOT EXISTS {data} (chunk_id INTEGER PRIMARY KEY, file_id INTEGER NOT NULL, chunk_num INTEGER NOT NULL, data BLOB NOT NULL, CONSTRAINT unq UNIQUE (file_id, chunk_num), FOREIGN KEY(file_id) REFERENCES {meta} (id))";
   static constexpr std::string_view SQL_GET_HANDLE = "SELECT id FROM {meta} WHERE path = ? AND type = ?";
+  static constexpr std::string_view SQL_GLOB = "SELECT path FROM {meta} WHERE path GLOB ? AND type = ?";
 
   auto meta = util::MetaTable::Load(database);
   if (!meta.empty() && meta[0].Id() != CURRENT_VERSION) {
@@ -73,9 +77,13 @@ Result<FileSystem> FileSystem::Open(sqlite::Database &&database) noexcept {
 	  sqlite::PreparedStatement::Insert(database, meta[0].Meta(), {"path", "type", "chunk_size"});
   auto insert_blob_statement =
 	  sqlite::PreparedStatement::Insert(database, meta[0].Data(), {"file_id", "chunk_num", "data"});
+  auto glob_statement = sqlite::PreparedStatement::Create(database, meta[0].Format(SQL_GLOB));
 
-  Status status =
-	  sqlite::Result<>::Check(handle_statement, chunk_statement, insert_header_statement, insert_blob_statement);
+  Status status = sqlite::Result<>::Check(handle_statement,
+										  chunk_statement,
+										  insert_header_statement,
+										  insert_blob_statement,
+										  glob_statement);
   if (status) {
 	// Protected constructor enforce external setup
 	return Result<FileSystem>(FileSystem(std::move(database),
@@ -83,6 +91,7 @@ Result<FileSystem> FileSystem::Open(sqlite::Database &&database) noexcept {
 										 sqlite::Result<>::Get(std::move(chunk_statement)),
 										 sqlite::Result<>::Get(std::move(insert_header_statement)),
 										 sqlite::Result<>::Get(std::move(insert_blob_statement)),
+										 sqlite::Result<>::Get(std::move(glob_statement)),
 										 meta[0]));
   } else {
 	return Result<FileSystem>::Fail(status);
@@ -209,6 +218,18 @@ sqlite::Result<sqlite::Database::RowId, sqlite::Status> FileSystem::CreateHeader
 
   return status ? sqlite::Result<sqlite::Database::RowId, sqlite::Status>::Ok(id)
 				: sqlite::Result<sqlite::Database::RowId, sqlite::Status>::Fail(status);
+}
+
+void FileSystem::Find(const Path &path, std::vector<Path> &files) const noexcept {
+  std::string full_path = path.AbsolutePath();
+  glob_statement_([&](Query &query) {
+	query.Set(0, full_path);
+	query.Set(1, File::Type);
+	while (query().DataAvailable()) {
+	  files.emplace_back(query.Get<std::string_view>(0));
+	}
+	return Status();
+  });
 }
 
 }

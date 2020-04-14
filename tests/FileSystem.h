@@ -86,9 +86,65 @@ TEST_CASE ("Multiple files") {
   auto file_system = std::get<FileSystem>(std::move(file_system_container));
 
   sqlite::Blob<true> data(42);
-  Path path = Path("folder/example_file.txt");
-  CHECK(file_system.Create(path, data.Copy()));
-  CHECK(file_system.Create(path, data.Copy()) == Error(errors::Io::FileExists));
+  const Path path_1 = Path("folder/example_file_1.txt");
+  REQUIRE(file_system.Create(path_1, data.Copy()));
+  REQUIRE(file_system.Create(path_1, data.Copy()) == Error(errors::Io::FileExists));
+
+  // Create an example content
+  const Path path_2 = Path("folder/example_file_2.txt"),
+	path_3 = Path("folder/nested_folder1/file1.txt"),
+	path_4 = Path("folder/nested_folder1/file2.txt"),
+	path_5 = Path("folder/nested_folder2/file1.txt");
+  REQUIRE(file_system.Create(path_2, data.Copy()));
+  REQUIRE(file_system.Create(path_3, data.Copy()));
+  REQUIRE(file_system.Create(path_4, data.Copy()));
+  REQUIRE(file_system.Create(path_5, data.Copy()));
+
+  std::vector<Path> paths;
+
+  // Check non-existing paths
+  file_system.Find(Path("folder"), paths);
+  CHECK(paths.empty());
+
+  // Check existing paths - makes no real sense, but...
+  file_system.Find(path_1, paths);
+  CHECK(paths.size() == 1);
+  CHECK(paths.at(0) == path_1);
+
+  // Check single char wildcard
+  paths.clear();
+  file_system.Find(Path("folder/example_file_?.txt"), paths);
+  CHECK(paths.size() == 2);
+  CHECK(std::find(paths.begin(), paths.end(), path_1) != paths.end());
+  CHECK(std::find(paths.begin(), paths.end(), path_2) != paths.end());
+
+  // Check multiple char wildcard
+  paths.clear();
+  file_system.Find(Path("folder/example_*.txt"), paths);
+  CHECK(paths.size() == 2);
+  CHECK(std::find(paths.begin(), paths.end(), path_1) != paths.end());
+  CHECK(std::find(paths.begin(), paths.end(), path_2) != paths.end());
+
+  // Check multiple char wildcard in folders
+  paths.clear();
+  file_system.Find(Path("folder/*/*"), paths);
+  CHECK(paths.size() == 3);
+  CHECK(std::find(paths.begin(), paths.end(), path_3) != paths.end());
+  CHECK(std::find(paths.begin(), paths.end(), path_4) != paths.end());
+  CHECK(std::find(paths.begin(), paths.end(), path_5) != paths.end());
+
+  // Check general wildcard
+  std::vector<Path> all_paths;
+  paths.clear();
+  file_system.Find(Path("*"), paths);
+  file_system.Find(all_paths);
+  CHECK(paths.size() == 5);
+  CHECK(paths == all_paths);
+  CHECK(std::find(paths.begin(), paths.end(), path_1) != paths.end());
+  CHECK(std::find(paths.begin(), paths.end(), path_2) != paths.end());
+  CHECK(std::find(paths.begin(), paths.end(), path_3) != paths.end());
+  CHECK(std::find(paths.begin(), paths.end(), path_4) != paths.end());
+  CHECK(std::find(paths.begin(), paths.end(), path_5) != paths.end());
 }
 }
 
