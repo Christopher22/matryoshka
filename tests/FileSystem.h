@@ -78,6 +78,18 @@ TEST_CASE ("Reading") {
   CHECK(read_blob->operator[](0) == 15);
   CHECK(read_blob->operator[](1) == 16);
 }
+
+TEST_CASE ("Multiple files") {
+  auto database = std::get<Database>(Database::Create());
+  auto file_system_container = FileSystem::Open(std::move(database));
+  REQUIRE_MESSAGE(file_system_container, file_system_container);
+  auto file_system = std::get<FileSystem>(std::move(file_system_container));
+
+  sqlite::Blob<true> data(42);
+  Path path = Path("folder/example_file.txt");
+  CHECK(file_system.Create(path, data.Copy()));
+  CHECK(file_system.Create(path, data.Copy()) == Error(errors::Io::FileExists));
+}
 }
 
 #endif //MATRYOSHKA_TESTS_FILESYSTEM_H_

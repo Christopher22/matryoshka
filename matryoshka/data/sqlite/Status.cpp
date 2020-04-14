@@ -20,4 +20,9 @@ bool Status::DataAvailable() const noexcept {
   return status_ == SQLITE_ROW;
 }
 
+bool Status::ConstraintViolated() const noexcept {
+  // Use the lower 8 bits for getting the primary error code from an extended one, as defined in the documentation.
+  return (status_ & 0xFF) == SQLITE_CONSTRAINT;
+}
+
 }

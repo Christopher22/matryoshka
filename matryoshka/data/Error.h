@@ -17,6 +17,7 @@ using Backend = sqlite::Status;
 enum class Io {
   InvalidDatabaseVersion,
   FileNotFound,
+  FileExists,
   OutOfBounds,
   NotImplemented
 };

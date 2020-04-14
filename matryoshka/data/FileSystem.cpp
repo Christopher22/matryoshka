@@ -150,7 +150,8 @@ Result<File> FileSystem::Create(const Path &path, FileSystem::Chunk &&data, int 
   // Create the header enty and get the file handle
   auto header_container = this->CreateHeader(path, chunk_size, File::Type);
   if (!header_container) {
-	return Result<File>::Fail(static_cast<Status>(header_container));
+	auto status = static_cast<Status>(header_container);
+	return status.ConstraintViolated() ? Result<File>(Error(errors::Io::FileExists)) : Result<File>::Fail(status);
   }
   auto file_id = sqlite::Result<>::Get(std::move(header_container));
 

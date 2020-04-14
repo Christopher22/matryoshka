@@ -21,6 +21,7 @@ class Status {
   [[nodiscard]] std::string_view Message() const noexcept;
   [[nodiscard]] bool IsSuccessful() const noexcept;
   [[nodiscard]] bool DataAvailable() const noexcept;
+  [[nodiscard]] bool ConstraintViolated() const noexcept;
 
   inline explicit operator int() const noexcept {
 	return status_;
