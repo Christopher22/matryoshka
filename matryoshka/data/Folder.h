@@ -8,7 +8,7 @@
 #include "FileSystemObject.h"
 
 namespace matryoshka::data {
-class Folder : public FileSystemObject {
+class Folder : public FileSystemObject<0> {
   constexpr explicit Folder(FileSystemObject::HandleType handle) noexcept: FileSystemObject(handle) {}
 };
 }

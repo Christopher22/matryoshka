@@ -11,15 +11,21 @@
 
 namespace matryoshka::data {
 
+using FileSystemObjectType = int;
+
+template<FileSystemObjectType ObjectType = -1>
 class FileSystemObject {
  public:
   using HandleType = std::int_fast64_t;
+  static constexpr FileSystemObjectType Type = ObjectType;
 
-  inline bool operator==(const FileSystemObject &other) const noexcept {
+  template<FileSystemObjectType T>
+  inline bool operator==(const FileSystemObject<T> &other) const noexcept {
 	return id_ == other.id_;
   }
 
-  inline bool operator!=(const FileSystemObject &other) const noexcept {
+  template<FileSystemObjectType T>
+  inline bool operator!=(const FileSystemObject<T> &other) const noexcept {
 	return id_ != other.id_;
   }
 

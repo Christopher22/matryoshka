@@ -38,11 +38,6 @@ class FileSystem {
   Result<File> Create(const Path &path, Chunk &&data, int chunk_size = -1);
 
  protected:
-  enum class FileSystemObjectType : int {
-	Directory = 0,
-	File = 1,
-  };
-
   FileSystem(sqlite::Database &&database,
 			 sqlite::PreparedStatement &&handle_statement,
 			 sqlite::PreparedStatement &&chunk_statement,
@@ -52,8 +47,7 @@ class FileSystem {
 
   sqlite::Result<sqlite::Database::RowId, sqlite::Status> CreateHeader(const Path &path,
 																	   int chunk_size,
-																	   FileSystem::FileSystemObjectType type) noexcept;
-
+																	   FileSystemObjectType type) noexcept;
  private:
   sqlite::Database database_;
   sqlite::PreparedStatement handle_statement_, chunk_statement_, header_statement_, blob_statement_;

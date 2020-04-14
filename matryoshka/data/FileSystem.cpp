@@ -93,7 +93,7 @@ Result<File> FileSystem::Open(const Path &path) noexcept {
   const std::string clean_path = path.AbsolutePath();
   std::optional<int> handle = handle_statement_.Execute<int, std::string_view, int>(
 	  clean_path,
-	  static_cast<int>(FileSystem::FileSystemObjectType::File)
+	  static_cast<int>(File::Type)
   );
 
   if (handle.has_value()) {
@@ -148,7 +148,7 @@ Result<File> FileSystem::Create(const Path &path, FileSystem::Chunk &&data, int 
   }
 
   // Create the header enty and get the file handle
-  auto header_container = this->CreateHeader(path, chunk_size, FileSystem::FileSystemObjectType::File);
+  auto header_container = this->CreateHeader(path, chunk_size, File::Type);
   if (!header_container) {
 	return Result<File>::Fail(static_cast<Status>(header_container));
   }
@@ -193,7 +193,7 @@ Result<File> FileSystem::Create(const Path &path, FileSystem::Chunk &&data, int 
 
 sqlite::Result<sqlite::Database::RowId, sqlite::Status> FileSystem::CreateHeader(const Path &path,
 																				 int chunk_size,
-																				 FileSystem::FileSystemObjectType type) noexcept {
+																				 FileSystemObjectType type) noexcept {
   sqlite::Database::RowId id = -1;
   const Status status = header_statement_([&](Query &query) {
 	return query.Set(0, path.AbsolutePath())
