@@ -8,6 +8,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <iostream>
 
 namespace matryoshka::data {
 class Path {
@@ -37,6 +38,11 @@ class Path {
 
   inline bool operator!=(std::string_view rhs) const noexcept {
 	return !(parts_ == Path(rhs).parts_);
+  }
+
+  inline friend std::ostream &operator<<(std::ostream &output, const Path &error) {
+	output << error.AbsolutePath();
+	return output;
   }
 
  private:
