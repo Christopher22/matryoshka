@@ -6,65 +6,99 @@
 #define MATRYOSHKA_MATRYOSHKA_DATA_SQLITE_BLOB_H_
 
 #include <cassert>
+#include <fstream>
 
 namespace matryoshka::data::sqlite {
 
-template<bool HasOwnership>
-class Blob {};
-
-template<>
-class Blob<false> {
+class BlobBase {
  public:
-  constexpr inline Blob(const unsigned char *data, int size) noexcept: data_(data), size_(size) {}
+  [[nodiscard]] virtual const unsigned char *Data() const noexcept = 0;
 
   [[nodiscard]] inline int Size() const noexcept {
 	return size_;
   }
 
-  [[nodiscard]] inline const unsigned char *Data() const noexcept {
-	return data_;
+  inline explicit operator bool() const noexcept {
+	return this->Data() != nullptr && size_ > 0;
   }
 
   inline explicit operator const unsigned char *() const noexcept {
-	return data_;
-  }
-
-  inline explicit operator bool() const noexcept {
-	return data_ != nullptr;
-  }
-
-  template<bool O>
-  inline bool operator==(const Blob<O> &rhs) const noexcept {
-	return size_ == rhs.Size() && std::memcmp(data_, rhs.Data(), size_) == 0;
-  }
-
-  template<bool O>
-  inline bool operator!=(const Blob<O> &rhs) const noexcept {
-	return !(rhs == *this);
+	return this->Data();
   }
 
   [[nodiscard]] const unsigned char &operator[](int index) const noexcept {
-	return data_[index];
+	return this->Data()[index];
+  }
+
+  [[nodiscard]] inline bool has_equal_content(const BlobBase *rhs) const noexcept {
+	return size_ == rhs->Size() && std::memcmp(this->Data(), rhs->Data(), size_) == 0;
+  }
+
+  bool save(std::string_view path, bool append = false) const {
+	std::ofstream output(path.data(),
+						 std::ifstream::out | std::ifstream::binary
+							 | (append ? std::ifstream::app : std::ifstream::trunc));
+	if (output) {
+	  output.write(reinterpret_cast<const char *>(this->Data()), size_);
+	  if (output) {
+		return true;
+	  }
+	}
+	return false;
+  }
+
+ protected:
+  constexpr explicit BlobBase(int size) noexcept: size_(size) {}
+  int size_;
+};
+
+template<bool HasOwnership>
+class Blob {};
+
+template<>
+class Blob<false> : public BlobBase {
+ public:
+  constexpr inline Blob(const unsigned char *data, int size) noexcept: BlobBase(size), data_(data) {}
+
+  [[nodiscard]] inline const unsigned char *Data() const noexcept final {
+	return data_;
   }
 
  protected:
   const unsigned char *data_;
-  int size_;
 };
 
 template<>
-class Blob<true> {
+class Blob<true> : public BlobBase {
  public:
-  constexpr explicit Blob() noexcept: data_(nullptr), size_(0) {}
-  inline explicit Blob(int size) : data_(new unsigned char[size]), size_(size) {}
-  constexpr Blob(unsigned char *data, int size) noexcept: data_(data), size_(size) {}
-  inline explicit Blob(const Blob<false> &shared) : data_(new unsigned char[shared.Size()]),
-													size_(shared.Size()) {
+  constexpr explicit Blob() noexcept: BlobBase(0), data_(nullptr) {}
+  inline explicit Blob(int size) : BlobBase(size), data_(new unsigned char[size]) {}
+  constexpr Blob(unsigned char *data, int size) noexcept: BlobBase(size), data_(data) {}
+  inline explicit Blob(const Blob<false> &shared) : BlobBase(shared.Size()), data_(new unsigned char[shared.Size()]) {
 	if (data_ && shared) {
 	  std::memcpy(data_, shared.Data(), size_);
 	}
   }
-  inline Blob(Blob &&other) noexcept: data_(other.data_), size_(other.size_) {
+  explicit Blob(std::string_view path, int maximal_size = -1) : BlobBase(0), data_(nullptr) {
+	std::ifstream file(path.data(), std::ifstream::in | std::ifstream::binary);
+	if (file) {
+	  // Get file length
+	  file.seekg(0, std::ifstream::end);
+	  int length = file.tellg();
+	  file.seekg(0, std::ifstream::beg);
+
+	  // Enforce maximal size
+	  if (maximal_size >= 0 && length >= maximal_size) {
+		return;
+	  }
+
+	  // Read the data
+	  data_ = new unsigned char[length];
+	  file.read(reinterpret_cast<char *>(data_), length);
+	  size_ = file.gcount();
+	}
+  }
+  inline Blob(Blob &&other) noexcept: BlobBase(other.size_), data_(other.data_) {
 	other.data_ = nullptr;
   }
 
@@ -96,11 +130,15 @@ class Blob<true> {
 	return Blob<false>(&data_[onset], length);
   }
 
-  [[nodiscard]] inline unsigned char *Data() const noexcept {
+  [[nodiscard]] inline const unsigned char *Data() const noexcept final {
 	return data_;
   }
 
   [[nodiscard]] inline unsigned char *Data() noexcept {
+	return data_;
+  }
+
+  inline explicit operator unsigned char *() const noexcept {
 	return data_;
   }
 
@@ -110,30 +148,8 @@ class Blob<true> {
 	return tmp;
   }
 
-  [[nodiscard]] inline int Size() const noexcept {
-	return size_;
-  }
-
   [[nodiscard]] unsigned char &operator[](int index) noexcept {
 	return data_[index];
-  }
-
-  template<bool O>
-  inline bool operator==(const Blob<O> &rhs) const {
-	return size_ == rhs.size_ && std::memcmp(data_, rhs.data_, size_) == 0;
-  }
-
-  template<bool O>
-  inline bool operator!=(const Blob<O> &rhs) const {
-	return !(rhs == *this);
-  }
-
-  inline explicit operator unsigned char *() const noexcept {
-	return data_;
-  }
-
-  inline explicit operator bool() const noexcept {
-	return data_ != nullptr;
   }
 
   inline explicit operator Blob<false>() const noexcept {
@@ -148,8 +164,33 @@ class Blob<true> {
 
  protected:
   unsigned char *data_;
-  int size_;
 };
+
+// All the allowed comparisons
+static inline bool operator==(const Blob<false> &lhs, const Blob<false> &rhs) noexcept {
+  return lhs.has_equal_content(&rhs);
+}
+static inline bool operator!=(const Blob<false> &lhs, const Blob<false> &rhs) noexcept {
+  return !(lhs == rhs);
+}
+static inline bool operator==(const Blob<false> &lhs, const Blob<true> &rhs) noexcept {
+  return lhs.has_equal_content(&rhs);
+}
+static inline bool operator!=(const Blob<false> &lhs, const Blob<true> &rhs) noexcept {
+  return !(lhs == rhs);
+}
+static inline bool operator==(const Blob<true> &lhs, const Blob<true> &rhs) noexcept {
+  return lhs.has_equal_content(&rhs);
+}
+static inline bool operator!=(const Blob<true> &lhs, const Blob<true> &rhs) noexcept {
+  return !(lhs == rhs);
+}
+static inline bool operator==(const Blob<true> &lhs, const Blob<false> &rhs) noexcept {
+  return lhs.has_equal_content(&rhs);
+}
+static inline bool operator!=(const Blob<true> &lhs, const Blob<false> &rhs) noexcept {
+  return !(lhs == rhs);
+}
 }
 
 #endif //MATRYOSHKA_MATRYOSHKA_DATA_SQLITE_BLOB_H_

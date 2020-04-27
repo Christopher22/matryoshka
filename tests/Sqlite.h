@@ -17,7 +17,7 @@
 using namespace matryoshka::data::sqlite;
 
 TEST_SUITE ("SQLite") {
-TEST_CASE ("Testing database") {
+TEST_CASE ("Database") {
   // Some example data for the database
   const std::string EXAMPLE_STRING(R"(Max\0 Mustermann)");
   const int EXAMPLE_INT = 32;
@@ -40,10 +40,10 @@ TEST_CASE ("Testing database") {
   );
 
   // Create the insert statement
-  auto insert_statement = PreparedStatement::Insert(data, "test", { "id", "name", "concurrency", "data" });
-  REQUIRE(insert_statement);
+  auto insert_statement = PreparedStatement::Insert(data, "test", {"id", "name", "concurrency", "data"});
+	  REQUIRE(insert_statement);
 
-  SUBCASE("IO") {
+	  SUBCASE("IO") {
 	// Write data
 	{
 		  SUBCASE("Manual") {
@@ -77,7 +77,7 @@ TEST_CASE ("Testing database") {
 		);
 			REQUIRE_MESSAGE(result, result.Message());
 
-		SUBCASE("Commit") {
+			SUBCASE("Commit") {
 		  // Commit
 		  transaction->Commit();
 		}
@@ -97,16 +97,16 @@ TEST_CASE ("Testing database") {
 	// Read the data
 	{
 	  auto statement_container = PreparedStatement::Create(data, "SELECT id, name, concurrency, data FROM test");
-	  REQUIRE(statement_container);
+		  REQUIRE(statement_container);
 
 	  std::get<PreparedStatement>(statement_container)([&](Query &query) {
-		REQUIRE(query());
-		CHECK(query.Get<int>(0) == EXAMPLE_INT);
-		CHECK(query.Get<std::string_view>(1) == EXAMPLE_STRING);
-		CHECK(query.Get<std::string>(1) == EXAMPLE_STRING);
-		CHECK(query.Get<double>(2) == EXAMPLE_DOUBLE);
-		CHECK(query.Get<Blob<true>>(3) == EXAMPLE_BLOB);
-		CHECK(query.Get<Blob<false>>(3) == EXAMPLE_BLOB);
+			REQUIRE(query());
+			CHECK(query.Get<int>(0) == EXAMPLE_INT);
+			CHECK(query.Get<std::string_view>(1) == EXAMPLE_STRING);
+			CHECK(query.Get<std::string>(1) == EXAMPLE_STRING);
+			CHECK(query.Get<double>(2) == EXAMPLE_DOUBLE);
+			CHECK(query.Get<Blob<true>>(3) == EXAMPLE_BLOB);
+			CHECK(query.Get<Blob<false>>(3) == EXAMPLE_BLOB);
 		return Status();
 	  });
 	}
@@ -121,11 +121,29 @@ TEST_CASE ("Testing database") {
 		  CHECK(raw_blob == EXAMPLE_BLOB);
 	}
   }
-
-	  SUBCASE("Transactions") {
-
-  }
 }
+TEST_CASE ("Blob") {
+  auto example = Blob<true>::Filled(42, 7), example_copy = example.Copy();
+  auto example_view = static_cast<Blob<false>>(example);
+  Blob<true> example2(new unsigned char[42], 42);
+  Blob<true> invalid;
+
+  // Check writing access
+  CHECK(!invalid);
+  example2[5] = 3;
+  CHECK(example2[5] == 3);
+
+  // Check equality
+  CHECK(example == example);
+  CHECK(example == example_copy);
+  CHECK(example == example_view);
+  CHECK(example != example2);
+  CHECK(example != invalid);
+
+  // File system
+  CHECK(example.save("test.tmp", false));
+  CHECK(Blob<true>("test.tmp") == example);
 };
+}
 
 #endif //MATRYOSHKA_TESTS_SQLITE_H_
