@@ -34,7 +34,7 @@ class BlobBase {
 	return size_ == rhs->Size() && std::memcmp(this->Data(), rhs->Data(), size_) == 0;
   }
 
-  bool save(std::string_view path, bool append = false) const {
+  bool Save(std::string_view path, bool append = false) const {
 	std::ofstream output(path.data(),
 						 std::ifstream::out | std::ifstream::binary
 							 | (append ? std::ifstream::app : std::ifstream::trunc));

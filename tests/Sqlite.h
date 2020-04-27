@@ -141,7 +141,7 @@ TEST_CASE ("Blob") {
   CHECK(example != invalid);
 
   // File system
-  CHECK(example.save("test.tmp", false));
+  CHECK(example.Save("test.tmp", false));
   CHECK(Blob<true>("test.tmp") == example);
 };
 }
