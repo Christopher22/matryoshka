@@ -34,8 +34,8 @@ class Result : public std::variant<T, S> {
 	return Result<T, S>(status_code);
   }
 
-  template<typename X>
-  static inline X Get(Result<X> &&result) {
+  template<typename X, typename Y = S>
+  static inline X Get(Result<X, Y> &&result) {
 	return std::get<X>(std::move(result));
   }
 
