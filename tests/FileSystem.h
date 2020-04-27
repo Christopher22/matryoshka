@@ -44,6 +44,9 @@ TEST_CASE ("Reading") {
   REQUIRE_MESSAGE(file_container, file_container);
   auto file = std::get<File>(file_container);
 
+  // Check the reported file size
+  CHECK(file_system.Size(file) == data.Size());
+
   // Read full data
   matryoshka::data::Result<matryoshka::data::FileSystem::Chunk> read_blob = file_system.Read(file, 0, data.Size());
   CHECK(read_blob == data);

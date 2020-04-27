@@ -35,6 +35,7 @@ class FileSystem {
 
   [[nodiscard]] Result<File> Open(const Path &path) noexcept;
   [[nodiscard]] Result<Chunk> Read(const File &file, int start, int length) const;
+  [[nodiscard]] int Size(const File& file);
   Result<File> Create(const Path &path, Chunk &&data, int chunk_size = -1);
   void Find(const Path &path, std::vector<Path> &files) const noexcept;
   inline void Find(std::vector<Path> &files) const noexcept {
@@ -48,6 +49,7 @@ class FileSystem {
 			 sqlite::PreparedStatement &&header_statement,
 			 sqlite::PreparedStatement &&blob_statement,
 			 sqlite::PreparedStatement &&glob_statement_,
+			 sqlite::PreparedStatement &&size_statement_,
 			 util::MetaTable meta_table) noexcept;
 
   sqlite::Result<sqlite::Database::RowId, sqlite::Status> CreateHeader(const Path &path,
@@ -55,7 +57,7 @@ class FileSystem {
 																	   FileSystemObjectType type) noexcept;
  private:
   sqlite::Database database_;
-  sqlite::PreparedStatement handle_statement_, chunk_statement_, header_statement_, blob_statement_, glob_statement_;
+  sqlite::PreparedStatement handle_statement_, chunk_statement_, header_statement_, blob_statement_, glob_statement_, size_statement_;
   util::MetaTable meta_;
 };
 }
