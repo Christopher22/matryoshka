@@ -168,7 +168,11 @@ Result<File> FileSystem::Create(const Path &path, FileSystem::Chunk &&data, int 
   auto header_container = this->CreateHeader(path, chunk_size, File::Type);
   if (!header_container) {
 	auto status = static_cast<Status>(header_container);
-	return status.ConstraintViolated() ? Result<File>(Error(errors::Io::FileExists)) : Result<File>::Fail(status);
+	if (status.ConstraintViolated()) {
+	  return Result<File>(Error(errors::Io::FileExists));
+	} else {
+	  return Result<File>::Fail(status);
+	}
   }
   auto file_id = sqlite::Result<>::Get(std::move(header_container));
 
@@ -224,8 +228,11 @@ sqlite::Result<sqlite::Database::RowId, sqlite::Status> FileSystem::CreateHeader
 		});
   });
 
-  return status ? sqlite::Result<sqlite::Database::RowId, sqlite::Status>::Ok(id)
-				: sqlite::Result<sqlite::Database::RowId, sqlite::Status>::Fail(status);
+  if (status) {
+	return sqlite::Result<sqlite::Database::RowId, sqlite::Status>::Ok(id);
+  } else {
+	return sqlite::Result<sqlite::Database::RowId, sqlite::Status>::Fail(status);
+  }
 }
 
 void FileSystem::Find(const Path &path, std::vector<Path> &files) const noexcept {

@@ -42,7 +42,7 @@ TEST_CASE ("Reading") {
   }
 
   REQUIRE_MESSAGE(file_container, file_container);
-  auto file = std::get<File>(file_container);
+  auto file = std::get<File>(std::move(file_container));
 
   // Check the reported file size
   CHECK(file_system.Size(file) == data.Size());

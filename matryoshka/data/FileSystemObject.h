@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <cassert>
 
 namespace matryoshka::data {
 
@@ -18,6 +19,9 @@ class FileSystemObject {
  public:
   using HandleType = std::int_fast64_t;
   static constexpr FileSystemObjectType Type = ObjectType;
+
+  FileSystemObject(FileSystemObject const &) = delete;
+  FileSystemObject &operator=(FileSystemObject const &) = delete;
 
   template<FileSystemObjectType T>
   inline bool operator==(const FileSystemObject<T> &other) const noexcept {
@@ -30,11 +34,17 @@ class FileSystemObject {
   }
 
   [[nodiscard]] inline HandleType Handle() const noexcept {
+	// Check for valid handle on debug
+	assert(id_ >= 0);
 	return id_;
   }
 
+  inline void Invalidate() noexcept {
+	id_ = -1;
+  }
+
  protected:
-  constexpr explicit FileSystemObject(HandleType id) noexcept : id_(id) {}
+  constexpr explicit FileSystemObject(HandleType id) noexcept: id_(id) {}
 
   HandleType id_;
 };
