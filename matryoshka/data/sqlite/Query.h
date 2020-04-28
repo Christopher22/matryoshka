@@ -18,6 +18,14 @@ class sqlite3_stmt;
 namespace matryoshka::data::sqlite {
 class Query {
  public:
+  enum class ValueType {
+	Integer,
+	Float,
+	Text,
+	Blob,
+	Null
+  };
+
   explicit Query(sqlite3_stmt *prepared_statement) noexcept;
   Query(Query &&other) = delete;
   Query(Query const &) = delete;
@@ -92,6 +100,8 @@ class Query {
   [[nodiscard]] inline Blob<true> Get(int index) const {
 	return Blob<true>(this->GetData(index));
   }
+
+  [[nodiscard]] ValueType Type(int index) const noexcept;
 
  protected:
   [[nodiscard]] double GetDouble(int index) const;

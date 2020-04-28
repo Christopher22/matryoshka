@@ -101,4 +101,14 @@ Status Query::operator()() noexcept {
   return status;
 }
 
+Query::ValueType Query::Type(int index) const noexcept {
+  switch (sqlite3_column_type(prepared_statement_, index)) {
+	case SQLITE_INTEGER: return ValueType::Integer;
+	case SQLITE_FLOAT: return ValueType::Float;
+	case SQLITE_TEXT: return ValueType::Text;
+	case SQLITE_BLOB: return ValueType::Blob;
+	default: return ValueType::Null;
+  }
+}
+
 }

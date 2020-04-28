@@ -101,6 +101,19 @@ TEST_CASE ("Database") {
 
 	  std::get<PreparedStatement>(statement_container)([&](Query &query) {
 			REQUIRE(query());
+
+			// Check types of result
+			std::vector<Query::ValueType> values = {Query::ValueType::Integer, Query::ValueType::Text, Query::ValueType::Float, Query::ValueType::Blob};
+			for(int i = 0; i < values.size(); ++i) {
+			  for(int j = 0; j < values.size(); ++j) {
+			    if(i == j) {
+			      CHECK(query.Type(j) == values[i]);
+			    } else {
+			      CHECK(query.Type(j) != values[i]);
+			    }
+			  }
+			}
+
 			CHECK(query.Get<int>(0) == EXAMPLE_INT);
 			CHECK(query.Get<std::string_view>(1) == EXAMPLE_STRING);
 			CHECK(query.Get<std::string>(1) == EXAMPLE_STRING);
