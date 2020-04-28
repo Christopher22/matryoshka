@@ -5,7 +5,16 @@ include(CTest)
 set(CMAKE_CXX_STANDARD 17)
 
 set(BUILD_TESTING OFF)
-set(BUILD_CLI ON)
+set(BUILD_CLI OFF)
+set(BUILD_WEBDAV OFF)
+
+# Use conan with cmake
+if (NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
+    message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
+    file(DOWNLOAD "https://github.com/conan-io/cmake-conan/raw/v0.15/conan.cmake" "${CMAKE_BINARY_DIR}/conan.cmake")
+endif ()
+include(${CMAKE_BINARY_DIR}/conan.cmake)
+conan_check(REQUIRED)
 
 # Specify the dependencies
 set(MATRYOSHKA_DEPENDENCIES sqlite3/3.31.1)
@@ -15,14 +24,10 @@ endif ()
 if (BUILD_CLI)
     list(APPEND MATRYOSHKA_DEPENDENCIES CLI11/1.9.0@cliutils/stable)
 endif ()
-
-# Use conan with cmake
-if (NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
-    message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
-    file(DOWNLOAD "https://github.com/conan-io/cmake-conan/raw/v0.15/conan.cmake" "${CMAKE_BINARY_DIR}/conan.cmake")
+if (BUILD_WEBDAV)
+    conan_add_remote(NAME stiffstream URL https://api.bintray.com/conan/stiffstream/public)
+    list(APPEND MATRYOSHKA_DEPENDENCIES restinio/0.6.6@stiffstream/stable CLI11/1.9.0@cliutils/stable)
 endif ()
-include(${CMAKE_BINARY_DIR}/conan.cmake)
-conan_check(REQUIRED)
 conan_cmake_run(REQUIRES ${MATRYOSHKA_DEPENDENCIES} BASIC_SETUP CMAKE_TARGETS BUILD missing)
 
 # Build Matryoshka library
@@ -42,4 +47,34 @@ endif ()
 if (BUILD_CLI)
     add_executable(MatryoshkaCLI matryoshka/cli.cpp)
     target_link_libraries(MatryoshkaCLI Matryoshka CONAN_PKG::CLI11)
+endif ()
+
+# Build WebDAV, if required
+if (BUILD_WEBDAV)
+    # ASIO wants the current windows version - set it.
+    # Adopted from https://stackoverflow.com/questions/9742003/platform-detection-in-cmake
+    if (WIN32)
+        macro(get_WIN32_WINNT version)
+            if (CMAKE_SYSTEM_VERSION)
+                set(ver ${CMAKE_SYSTEM_VERSION})
+                string(REGEX MATCH "^([0-9]+).([0-9])" ver ${ver})
+                string(REGEX MATCH "^([0-9]+)" verMajor ${ver})
+                # Check for Windows 10, b/c we'll need to convert to hex 'A'.
+                if ("${verMajor}" MATCHES "10")
+                    set(verMajor "A")
+                    string(REGEX REPLACE "^([0-9]+)" ${verMajor} ver ${ver})
+                endif ()
+                # Remove all remaining '.' characters.
+                string(REPLACE "." "" ver ${ver})
+                # Prepend each digit with a zero.
+                string(REGEX REPLACE "([0-9A-Z])" "0\\1" ver ${ver})
+                set(${version} "0x${ver}")
+            endif ()
+        endmacro()
+        get_WIN32_WINNT(ver)
+        add_definitions(-D_WIN32_WINNT=${ver})
+    endif ()
+
+    add_executable(MatryoshkaServer matryoshka/server/main.cpp matryoshka/server/Server.cpp matryoshka/server/Server.h)
+    target_link_libraries(MatryoshkaServer Matryoshka CONAN_PKG::restinio CONAN_PKG::CLI11)
 endif ()
