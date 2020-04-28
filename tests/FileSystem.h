@@ -57,11 +57,23 @@ TEST_CASE ("Reading") {
   CHECK(read_blob->Size() == 1);
   CHECK(read_blob->operator[](0) == 0);
 
+  CHECK(!file_system.Read(file, 0, 1, [] (auto &&chunk) {
+	CHECK(chunk.Size() == 1);
+	CHECK(chunk.operator[](0) == 0);
+	return true;
+  }));
+
   // Read last byte
   read_blob = file_system.Read(file, 41, 1);
   REQUIRE(read_blob);
   CHECK(read_blob->Size() == 1);
   CHECK(read_blob->operator[](0) == 41);
+
+  CHECK(!file_system.Read(file, 41, 1, [] (auto &&chunk) {
+	CHECK(chunk.Size() == 1);
+	CHECK(chunk.operator[](0) == 41);
+	return true;
+  }));
 
   // Check out-of-bounds
   read_blob = file_system.Read(file, 42, 1);
@@ -69,11 +81,28 @@ TEST_CASE ("Reading") {
   read_blob = file_system.Read(file, 40, 4);
   CHECK(read_blob == Error(errors::Io::OutOfBounds));
 
+  CHECK(file_system.Read(file, 42, 1, [] (auto &&chunk) {
+	CHECK(false);
+	return true;
+  }).value() == Error(errors::Io::OutOfBounds));
+
+  CHECK(file_system.Read(file, 40, 4, [] (auto &&chunk) {
+    // The chunk reader reads all data available but returns OutOfBounds nevertheless.
+	CHECK(true);
+	return true;
+  }).value() == Error(errors::Io::OutOfBounds));
+
   // Read at chunk borders
   read_blob = file_system.Read(file, 15, 1);
   REQUIRE(read_blob);
   CHECK(read_blob->Size() == 1);
   CHECK(read_blob->operator[](0) == 15);
+
+  CHECK(!file_system.Read(file, 15, 1, [] (auto &&chunk) {
+	CHECK(chunk.Size() == 1);
+	CHECK(chunk.operator[](0) == 15);
+	return true;
+  }));
 
   read_blob = file_system.Read(file, 15, 2);
   REQUIRE(read_blob);

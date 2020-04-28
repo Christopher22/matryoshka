@@ -7,6 +7,7 @@
 #include "sqlite/BlobReader.h"
 #include "sqlite/Transaction.h"
 #include "util/ContinuousReader.h"
+#include "util/ChunkReader.h"
 
 #include <cassert>
 #include <sstream>
@@ -77,7 +78,7 @@ Result<FileSystem> FileSystem::Open(sqlite::Database &&database) noexcept {
 
   // Prepare the statement for querying the id
   auto handle_statement = sqlite::PreparedStatement::Create(database, meta[0].Format(SQL_GET_HANDLE));
-  auto chunk_statement = util::ContinuousReader::PrepareStatement(database, meta[0]);
+  auto chunk_statement = util::Reader::PrepareStatement(database, meta[0]);
   auto insert_header_statement =
 	  sqlite::PreparedStatement::Insert(database, meta[0].Meta(), {"path", "type", "chunk_size"});
   auto insert_blob_statement =
@@ -122,31 +123,30 @@ Result<File> FileSystem::Open(const Path &path) noexcept {
 
 Result<FileSystem::Chunk> FileSystem::Read(const File &file, int start, int length) const {
   util::ContinuousReader reader(length, start);
-
-  // Load the chunks
-  const auto chunk_status = chunk_statement_([&](Query &query) {
-	return query.SetByName(":handle", file.Handle())
-		.Than([&query, start] {
-		  return query.SetByName(":index", start);
-		}).Than([&query, length] {
-		  return query.SetByName(":size", length);
-		}).Than([&query, &reader] {
-		  return reader.Add(query);
-		});
-  });
-
-  if (!chunk_status) {
-	return Result<FileSystem::Chunk>::Fail(chunk_status);
-  } else if (reader.First() == -1) {
-	return Result<FileSystem::Chunk>::Fail(errors::Io::OutOfBounds);
-  }
-
-  // Read the blobs sequentially
-  if (reader(BlobReader::Open(database_, reader.First(), meta_.Data(), "data"))) {
+  auto error = this->Read(file, &reader, start);
+  if (!error) {
 	return Result<FileSystem::Chunk>::Ok(util::ContinuousReader::Release(std::move(reader)));
   } else {
-	return Result<FileSystem::Chunk>::Fail(reader.Error());
+	return Result<FileSystem::Chunk>::Fail(error.value());
   }
+}
+
+std::optional<Error> FileSystem::Read(const File &file,
+									  int start,
+									  int length,
+									  std::function<bool(Chunk &&)> callback) const {
+  util::ChunkReader reader(length, [&](auto &&chunk) {
+	return callback(std::forward<decltype(chunk)>(chunk)) ? Status() : Status::Aborted();
+  }, start);
+
+  // Read the chunks. Aborting by user is not a error worth reporting.
+  auto error = this->Read(file, &reader, start);
+  if (!error || error.value() == Error(Status::Aborted())) {
+	return std::nullopt;
+  } else {
+	return error;
+  }
+
 }
 
 Result<File> FileSystem::Create(const Path &path, FileSystem::Chunk &&data, int chunk_size) {
@@ -251,4 +251,30 @@ int FileSystem::Size(const File &file) {
   return size_statement_.Execute<int>(file.Handle()).value();
 }
 
+std::optional<Error> FileSystem::Read(const File &file, util::Reader *reader, int start) const {
+  // Load the chunks
+  const auto chunk_status = chunk_statement_([&](Query &query) {
+	return query.SetByName(":handle", file.Handle())
+		.Than([&query, start] {
+		  return query.SetByName(":index", start);
+		}).Than([&query, &reader] {
+		  return query.SetByName(":size", reader->Length());
+		}).Than([&query, &reader] {
+		  return reader->Add(query);
+		});
+  });
+
+  if (!chunk_status) {
+	return Error(chunk_status);
+  } else if (reader->First() == -1) {
+	return Error(errors::Io::OutOfBounds);
+  }
+
+  // Read the blobs sequentially
+  if ((*reader)(BlobReader::Open(database_, reader->First(), meta_.Data(), "data"))) {
+	return std::nullopt;
+  } else {
+	return Error(reader->Error());
+  }
+}
 }

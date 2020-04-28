@@ -10,6 +10,7 @@
 #include "File.h"
 #include "Path.h"
 #include "util/MetaTable.h"
+#include "util/Reader.h"
 #include "sqlite/Database.h"
 #include "sqlite/PreparedStatement.h"
 #include "sqlite/Blob.h"
@@ -18,6 +19,7 @@
 #include <variant>
 #include <optional>
 #include <string_view>
+#include <functional>
 
 namespace matryoshka::data {
 template<typename T>
@@ -35,6 +37,8 @@ class FileSystem {
 
   [[nodiscard]] Result<File> Open(const Path &path) noexcept;
   [[nodiscard]] Result<Chunk> Read(const File &file, int start, int length) const;
+  std::optional<Error> Read(const File &file, int start, int length, std::function<bool(Chunk&&)> callback) const;
+
   [[nodiscard]] int Size(const File& file);
   Result<File> Create(const Path &path, Chunk &&data, int chunk_size = -1);
   void Find(const Path &path, std::vector<Path> &files) const noexcept;
@@ -56,6 +60,8 @@ class FileSystem {
 																	   int chunk_size,
 																	   FileSystemObjectType type) noexcept;
  private:
+
+  std::optional<Error> Read(const File &file, util::Reader *reader, int start) const;
   sqlite::Database database_;
   sqlite::PreparedStatement handle_statement_, chunk_statement_, header_statement_, blob_statement_, glob_statement_, size_statement_;
   util::MetaTable meta_;
