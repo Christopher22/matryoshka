@@ -30,7 +30,7 @@ class BlobBase {
 	return this->Data()[index];
   }
 
-  [[nodiscard]] inline bool has_equal_content(const BlobBase *rhs) const noexcept {
+  [[nodiscard]] inline bool HasEqualContent(const BlobBase *rhs) const noexcept {
 	return size_ == rhs->Size() && std::memcmp(this->Data(), rhs->Data(), size_) == 0;
   }
 
@@ -45,6 +45,18 @@ class BlobBase {
 	  }
 	}
 	return false;
+  }
+
+  /*
+   * Aliases for STL compatibility
+   */
+
+  [[nodiscard]] inline std::size_t size() const noexcept {
+	return size_;
+  }
+
+  [[nodiscard]] inline const unsigned char *data() const noexcept {
+	return this->Data();
   }
 
  protected:
@@ -168,25 +180,25 @@ class Blob<true> : public BlobBase {
 
 // All the allowed comparisons
 static inline bool operator==(const Blob<false> &lhs, const Blob<false> &rhs) noexcept {
-  return lhs.has_equal_content(&rhs);
+  return lhs.HasEqualContent(&rhs);
 }
 static inline bool operator!=(const Blob<false> &lhs, const Blob<false> &rhs) noexcept {
   return !(lhs == rhs);
 }
 static inline bool operator==(const Blob<false> &lhs, const Blob<true> &rhs) noexcept {
-  return lhs.has_equal_content(&rhs);
+  return lhs.HasEqualContent(&rhs);
 }
 static inline bool operator!=(const Blob<false> &lhs, const Blob<true> &rhs) noexcept {
   return !(lhs == rhs);
 }
 static inline bool operator==(const Blob<true> &lhs, const Blob<true> &rhs) noexcept {
-  return lhs.has_equal_content(&rhs);
+  return lhs.HasEqualContent(&rhs);
 }
 static inline bool operator!=(const Blob<true> &lhs, const Blob<true> &rhs) noexcept {
   return !(lhs == rhs);
 }
 static inline bool operator==(const Blob<true> &lhs, const Blob<false> &rhs) noexcept {
-  return lhs.has_equal_content(&rhs);
+  return lhs.HasEqualContent(&rhs);
 }
 static inline bool operator!=(const Blob<true> &lhs, const Blob<false> &rhs) noexcept {
   return !(lhs == rhs);
