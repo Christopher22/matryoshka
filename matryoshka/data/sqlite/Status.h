@@ -13,6 +13,8 @@ class Status {
  public:
   constexpr inline explicit Status(int status = 0) : status_(status) {}
 
+  [[nodiscard]] static Status Aborted() noexcept;
+
   template<typename C>
   inline Status Than(C &callback) const noexcept {
 	return *this ? callback() : *this;

@@ -25,4 +25,8 @@ bool Status::ConstraintViolated() const noexcept {
   return (status_ & 0xFF) == SQLITE_CONSTRAINT;
 }
 
+Status Status::Aborted() noexcept {
+  return Status(SQLITE_ABORT);
+}
+
 }
