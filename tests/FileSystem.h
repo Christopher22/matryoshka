@@ -122,6 +122,10 @@ TEST_CASE ("Multiple files") {
   REQUIRE(file_system.Create(path_1, data.Copy()));
   REQUIRE(file_system.Create(path_1, data.Copy()) == Error(errors::Io::FileExists));
 
+  // Check for opening
+  CHECK(file_system.Open(path_1));
+  CHECK(!file_system.Open(Path("a_nonexisting_file")));
+
   // Create an example content
   const Path path_2 = Path("folder/example_file_2.txt"),
 	path_3 = Path("folder/nested_folder1/file1.txt"),

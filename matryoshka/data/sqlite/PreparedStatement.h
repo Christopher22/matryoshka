@@ -37,7 +37,7 @@ class PreparedStatement {
 
   template<typename C>
   inline Status operator()(C callback) const {
-	static_assert(std::is_constructible<std::function<Status(Query & )>, C>::value);
+	static_assert(std::is_constructible<std::function<Status(Query &)>, C>::value);
 
 	if (prepared_statement_ == nullptr) {
 	  return Status(1);
@@ -52,7 +52,10 @@ class PreparedStatement {
 	std::optional<T> result;
 	(*this)([&](sqlite::Query &query) {
 	  return query.SetMulti(0, std::forward<Args>(args)...).Than(query).Than([&]() {
-		result = query.Get<T>(0);
+		// Check if any data was reported
+		if (query.Type(0) != Query::ValueType::Null) {
+		  result = query.Get<T>(0);
+		}
 		return Status();
 	  });
 	});
