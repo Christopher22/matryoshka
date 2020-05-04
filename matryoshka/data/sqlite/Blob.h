@@ -84,13 +84,17 @@ template<>
 class Blob<true> : public BlobBase {
  public:
   constexpr explicit Blob() noexcept: BlobBase(0), data_(nullptr) {}
+
   inline explicit Blob(int size) : BlobBase(size), data_(new unsigned char[size]) {}
+
   constexpr Blob(unsigned char *data, int size) noexcept: BlobBase(size), data_(data) {}
+
   inline explicit Blob(const Blob<false> &shared) : BlobBase(shared.Size()), data_(new unsigned char[shared.Size()]) {
 	if (data_ && shared) {
 	  std::memcpy(data_, shared.Data(), size_);
 	}
   }
+
   explicit Blob(std::string_view path, int maximal_size = -1) : BlobBase(0), data_(nullptr) {
 	std::ifstream file(path.data(), std::ifstream::in | std::ifstream::binary);
 	if (file) {
@@ -110,6 +114,7 @@ class Blob<true> : public BlobBase {
 	  size_ = file.gcount();
 	}
   }
+
   inline Blob(Blob &&other) noexcept: BlobBase(other.size_), data_(other.data_) {
 	other.data_ = nullptr;
   }
@@ -162,6 +167,24 @@ class Blob<true> : public BlobBase {
 
   [[nodiscard]] unsigned char &operator[](int index) noexcept {
 	return data_[index];
+  }
+
+  bool Set(int onset, BlobBase *other, int length = -1, int other_onset = 0) {
+	if (onset < 0 || other_onset < 0 || onset >= this->Size() || other == nullptr) {
+	  return false;
+	} else if (length <= 0) {
+	  length = this->Size() - onset;
+	}
+
+	// Check length
+	if (size_ - onset < length || other->Size() - other_onset < length) {
+	  return false;
+	}
+
+	std::memcpy(reinterpret_cast<void *>(data_ + onset),
+				reinterpret_cast<const void *>(other->Data() + other_onset),
+				length);
+	return true;
   }
 
   inline explicit operator Blob<false>() const noexcept {

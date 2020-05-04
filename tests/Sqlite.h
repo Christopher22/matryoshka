@@ -135,6 +135,7 @@ TEST_CASE ("Database") {
 	}
   }
 }
+
 TEST_CASE ("Blob") {
   auto example = Blob<true>::Filled(42, 7), example_copy = example.Copy();
   auto example_view = static_cast<Blob<false>>(example);
@@ -156,6 +157,21 @@ TEST_CASE ("Blob") {
   // File system
   CHECK(example.Save("test.tmp", false));
   CHECK(Blob<true>("test.tmp") == example);
+
+  // Copy from other blob
+  auto other_example = Blob<true>::Filled(3, 66);
+  other_example[1] = 77;
+
+  CHECK(!example.Set(41, &other_example, 2)); // Check out-of-bounds source
+  CHECK(!example.Set(38, &other_example, -1)); // Check out of bounds source (destination too small)
+  CHECK(!example.Set(0, &other_example, 4));  // Check out-of-bounds destination
+  CHECK(!example.Set(0, &other_example, 3, 1)); // Check out-of-bounds destination (invalid onset)
+
+  CHECK(example.Set(1, &other_example, 2, 1));
+  CHECK(example[0] == 7);
+  CHECK(example[1] == 77);
+  CHECK(example[2] == 66);
+  CHECK(example[3] == 7);
 };
 }
 
