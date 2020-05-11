@@ -24,6 +24,10 @@ TEST_CASE ("Reading") {
 
   Path path("example_folder/example_file.txt");
   matryoshka::data::Result<File> file_container((Error(errors::Io::NotImplemented)));
+  std::string local_file_path = "test.tmp";
+
+  // Create a local file on disk for the file IO checks
+  REQUIRE(data.Save(local_file_path, false));
 
   SUBCASE("One chunk") {
 	file_container = file_system.Create(path, data.Copy());
@@ -35,6 +39,10 @@ TEST_CASE ("Reading") {
 	}, data.Size());
   }
 
+  SUBCASE("One chunk - File") {
+	file_container = file_system.Create(path, local_file_path);
+  }
+
   SUBCASE("Oversized chunk") {
 	file_container = file_system.Create(path, data.Copy(), data.Size() + 42);
   }
@@ -43,6 +51,10 @@ TEST_CASE ("Reading") {
 	file_container = file_system.Create(path, [&] (int) {
 	  return data.Copy();
 	}, data.Size(), data.Size() + 42);
+  }
+
+  SUBCASE("Oversized chunk - File") {
+	file_container = file_system.Create(path, local_file_path, data.Size() + 42);
   }
 
   SUBCASE("Multiple chunks - Last chunk == chunk size") {
@@ -58,6 +70,10 @@ TEST_CASE ("Reading") {
 	}, data.Size(), 14);
   }
 
+  SUBCASE("Multiple chunks - Last chunk == chunk size - File") {
+	file_container = file_system.Create(path, local_file_path, 14);
+  }
+
   SUBCASE("Multiple chunks - Last chunk != chunk size") {
 	file_container = file_system.Create(path, data.Copy(), 16);
   }
@@ -71,11 +87,19 @@ TEST_CASE ("Reading") {
 	}, data.Size(), 16);
   }
 
+  SUBCASE("Multiple chunks - Last chunk != chunk size - File") {
+	file_container = file_system.Create(path, local_file_path, 16);
+  }
+
   REQUIRE_MESSAGE(file_container, file_container);
   auto file = std::get<File>(std::move(file_container));
 
   // Check the reported file size
   CHECK(file_system.Size(file) == data.Size());
+
+  // Check direct read from database to local file system
+  CHECK(!file_system.Read(file, "test2.tmp", 0, data.Size(), true).has_value());
+  CHECK(Blob<true>("test2.tmp") == data);
 
   // Read full data
   matryoshka::data::Result<matryoshka::data::FileSystem::Chunk> read_blob = file_system.Read(file, 0, data.Size());

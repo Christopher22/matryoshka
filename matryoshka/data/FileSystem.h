@@ -37,10 +37,19 @@ class FileSystem {
 
   [[nodiscard]] Result<File> Open(const Path &path) noexcept;
   [[nodiscard]] Result<Chunk> Read(const File &file, int start, int length) const;
-  std::optional<Error> Read(const File &file, int start, int length, std::function<bool(Chunk &&)> callback) const;
+  [[nodiscard]] std::optional<Error> Read(const File &file,
+										  int start,
+										  int length,
+										  std::function<bool(Chunk &&)> callback) const;
+  [[nodiscard]] std::optional<Error> Read(const File &file,
+										  std::string_view file_path,
+										  int start,
+										  int length,
+										  bool truncate = true) const;
 
   [[nodiscard]] int Size(const File &file);
   Result<File> Create(const Path &path, Chunk &&data, int chunk_size = -1);
+  Result<File> Create(const Path &path, std::string_view file_path, int chunk_size = -1);
   Result<File> Create(const Path &path, std::function<Chunk(int)> data, int file_size, int chunk_size = -1);
   void Find(const Path &path, std::vector<Path> &files) const noexcept;
   inline void Find(std::vector<Path> &files) const noexcept {

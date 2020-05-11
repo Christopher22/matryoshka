@@ -15,6 +15,7 @@
 #include <utility>
 #include <numeric>
 #include <algorithm>
+#include <fstream>
 
 using namespace matryoshka::data::sqlite;
 
@@ -237,6 +238,12 @@ Result<File> FileSystem::Create(const Path &path,
 	  const int required_bytes = std::min(chunk_size, file_size - bytes_written);
 	  auto chunk = data_source(required_bytes);
 
+	  // Callback might be aborted at any time
+	  if (!chunk) {
+		result = Status::Aborted();
+		break;
+	  }
+
 	  // The optimal case: No data cached, new chunk of optimal size -> no copy involved
 	  if (chunk.size() == required_bytes && !cache) {
 		result = blob_statement_([&](Query &query) {
@@ -268,6 +275,43 @@ Result<File> FileSystem::Create(const Path &path,
 
 	return result;
   }, file_size, proposed_chunk_size);
+}
+
+Result<File> FileSystem::Create(const Path &path, std::string_view file_path, int chunk_size) {
+  std::ifstream file(file_path.data(), std::ifstream::in | std::ifstream::binary);
+  if (file) {
+	// Get file length
+	file.seekg(0, std::ifstream::end);
+	const int length = file.tellg();
+	file.seekg(0, std::ifstream::beg);
+	if (!file) {
+	  return Result<File>::Fail(errors::Io::ReadingError);
+	}
+
+	// Copy the file chunkwise into the buffer
+	auto result = this->Create(path, [&](int chunk_size) {
+	  Chunk data(chunk_size);
+	  file.read(reinterpret_cast<char *>(data.Data()), chunk_size);
+	  if (file.gcount() == chunk_size) {
+		return data;
+	  } else {
+		return Chunk();
+	  }
+	}, length, chunk_size);
+
+	// Check if file was read successfully
+	Error *error = nullptr;
+	if ((error = std::get_if<Error>(&result)) != nullptr) {
+	  Status *code = nullptr;
+	  if ((code = std::get_if<Status>(error)) != nullptr && *code == Status::Aborted()) {
+		return Result<File>::Fail(errors::Io::ReadingError);
+	  }
+	}
+
+	return result;
+  } else {
+	return Result<File>::Fail(errors::Io::FileNotFound);
+  }
 }
 
 sqlite::Result<sqlite::Database::RowId, sqlite::Status> FileSystem::CreateHeader(const Path &path,
@@ -332,6 +376,30 @@ std::optional<Error> FileSystem::Read(const File &file, util::Reader *reader, in
 	return std::nullopt;
   } else {
 	return Error(reader->Error());
+  }
+}
+
+std::optional<Error> FileSystem::Read(const File &file,
+									  std::string_view file_path,
+									  int start,
+									  int length,
+									  bool truncate) const {
+  std::ofstream output_file(file_path.data(),
+							std::ifstream::out | std::ifstream::binary
+								| (truncate ? std::ifstream::trunc : std::ifstream::app));
+  if (output_file) {
+	auto result = this->Read(file, start, length, [&](Chunk data) {
+	  output_file.write(reinterpret_cast<const char *>(data.Data()), data.Size());
+	  return static_cast<bool>(output_file);
+	});
+
+	// Aborting does not count as error, we have to set it manually
+	if (!result.has_value() && !output_file) {
+	  return Error(errors::Io::WritingError);
+	}
+	return result;
+  } else {
+	return Error(errors::Io::FileCreationFailed);
   }
 }
 }
