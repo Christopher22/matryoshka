@@ -9,3 +9,4 @@
 #include "Path.h"
 #include "MetaTable.h"
 #include "FileSystem.h"
+#include "Cache.h"
