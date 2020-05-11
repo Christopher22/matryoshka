@@ -29,16 +29,46 @@ TEST_CASE ("Reading") {
 	file_container = file_system.Create(path, data.Copy());
   }
 
+  SUBCASE("One chunk - Callback style") {
+	file_container = file_system.Create(path, [&] (int) {
+		return data.Copy();
+	}, data.Size());
+  }
+
   SUBCASE("Oversized chunk") {
 	file_container = file_system.Create(path, data.Copy(), data.Size() + 42);
+  }
+
+  SUBCASE("Oversized chunk - Callback style") {
+	file_container = file_system.Create(path, [&] (int) {
+	  return data.Copy();
+	}, data.Size(), data.Size() + 42);
   }
 
   SUBCASE("Multiple chunks - Last chunk == chunk size") {
 	file_container = file_system.Create(path, data.Copy(), 14);
   }
 
+  SUBCASE("Multiple chunks - Last chunk == chunk size - Callback style") {
+    int bytes_written = 0;
+	file_container = file_system.Create(path, [&] (int chunk_size) {
+	  auto result = sqlite::Blob<true>(data.Part(chunk_size, bytes_written));
+	  bytes_written += chunk_size;
+	  return result;
+	}, data.Size(), 14);
+  }
+
   SUBCASE("Multiple chunks - Last chunk != chunk size") {
 	file_container = file_system.Create(path, data.Copy(), 16);
+  }
+
+  SUBCASE("Multiple chunks - Last chunk == chunk size - Callback style - Callback style") {
+	int bytes_written = 0;
+	file_container = file_system.Create(path, [&] (int chunk_size) {
+	  auto result = sqlite::Blob<true>(data.Part(chunk_size, bytes_written));
+	  bytes_written += chunk_size;
+	  return result;
+	}, data.Size(), 16);
   }
 
   REQUIRE_MESSAGE(file_container, file_container);

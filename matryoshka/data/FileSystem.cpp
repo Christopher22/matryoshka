@@ -8,6 +8,7 @@
 #include "sqlite/Transaction.h"
 #include "util/ContinuousReader.h"
 #include "util/ChunkReader.h"
+#include "util/Cache.h"
 
 #include <cassert>
 #include <sstream>
@@ -149,10 +150,13 @@ std::optional<Error> FileSystem::Read(const File &file,
 
 }
 
-Result<File> FileSystem::Create(const Path &path, FileSystem::Chunk &&data, int chunk_size) {
+Result<File> FileSystem::Create(const Path &path,
+								std::function<sqlite::Status(sqlite::Database::RowId, int)> file_creation,
+								int file_size,
+								int chunk_size) {
   // Define a appropriate chunk size
-  if (chunk_size <= 0 || chunk_size > data.Size()) {
-	chunk_size = data.Size();
+  if (chunk_size <= 0 || chunk_size > file_size) {
+	chunk_size = file_size;
   }
   if (chunk_size >= database_.MaximalDataSize()) {
 	chunk_size = database_.MaximalDataSize() - 64;
@@ -164,7 +168,7 @@ Result<File> FileSystem::Create(const Path &path, FileSystem::Chunk &&data, int 
 	return Result<File>::Fail(static_cast<Status>(transaction));
   }
 
-  // Create the header enty and get the file handle
+  // Create the header entry and get the file handle
   auto header_container = this->CreateHeader(path, chunk_size, File::Type);
   if (!header_container) {
 	auto status = static_cast<Status>(header_container);
@@ -174,32 +178,10 @@ Result<File> FileSystem::Create(const Path &path, FileSystem::Chunk &&data, int 
 	  return Result<File>::Fail(status);
 	}
   }
-  auto file_id = sqlite::Result<>::Get(std::move(header_container));
 
-  // Write the data to SQlite, most efficiently if it is only a single chunk
-  Status status;
-  if (chunk_size == data.Size()) {
-
-	status = blob_statement_([&](Query &query) {
-	  return query.Set(0, file_id)
-		  .Than([&]() {
-			return query.Set(1, 0);
-		  }).Than([&]() {
-			return query.Set(2, std::move(data));
-		  }).Than(query);
-	});
-  } else {
-	for (int part_index = 0, c = 0, size = data.Size(); part_index < size && status; part_index += chunk_size, ++c) {
-	  status = blob_statement_([&](Query &query) {
-		return query.Set(0, file_id)
-			.Than([&]() {
-			  return query.Set(1, c);
-			}).Than([&]() {
-			  return query.Set(2, data.Part(std::min(chunk_size, size - part_index), part_index));
-			}).Than(query);
-	  });
-	}
-  }
+  // Create the actual file and fail if that was not sucessfull
+  auto file = std::get<sqlite::Database::RowId>(header_container);
+  const Status status = file_creation(file, chunk_size);
   if (!status) {
 	return Result<File>::Fail(status);
   }
@@ -210,7 +192,82 @@ Result<File> FileSystem::Create(const Path &path, FileSystem::Chunk &&data, int 
 	return Result<File>::Fail(status);
   }
 
-  return Result<File>::Ok(file_id);
+  return Result<File>::Ok(file);
+}
+
+Result<File> FileSystem::Create(const Path &path, FileSystem::Chunk &&data, int proposed_chunk_size) {
+  return this->Create(path, [&](sqlite::Database::RowId file_id, int chunk_size) {
+	// Write the data to SQlite, most efficiently if it is only a single chunk
+	Status status;
+	if (chunk_size == data.Size()) {
+	  status = blob_statement_([&](Query &query) {
+		return query.Set(0, file_id)
+			.Than([&]() {
+			  return query.Set(1, 0);
+			}).Than([&]() {
+			  return query.Set(2, std::move(data));
+			}).Than(query);
+	  });
+	} else {
+	  for (int part_index = 0, c = 0, size = data.Size(); part_index < size && status; part_index += chunk_size, ++c) {
+		status = blob_statement_([&](Query &query) {
+		  return query.Set(0, file_id)
+			  .Than([&]() {
+				return query.Set(1, c);
+			  }).Than([&]() {
+				return query.Set(2, data.Part(std::min(chunk_size, size - part_index), part_index));
+			  }).Than(query);
+		});
+	  }
+	}
+	return status;
+  }, data.Size(), proposed_chunk_size);
+}
+
+Result<File> FileSystem::Create(const Path &path,
+								std::function<Chunk(int)> data_source,
+								int file_size,
+								int proposed_chunk_size) {
+  return this->Create(path, [&](sqlite::Database::RowId file_id, int chunk_size) {
+	util::Cache cache;
+	int bytes_written = 0, chunk_num = 0;
+	Status result = Status();
+
+	while (result && bytes_written < file_size) {
+	  const int required_bytes = std::min(chunk_size, file_size - bytes_written);
+	  auto chunk = data_source(required_bytes);
+
+	  // The optimal case: No data cached, new chunk of optimal size -> no copy involved
+	  if (chunk.size() == required_bytes && !cache) {
+		result = blob_statement_([&](Query &query) {
+		  return query.Set(0, file_id)
+			  .Than([&]() {
+				return query.Set(1, chunk_num++);
+			  }).Than([&]() {
+				return query.Set(2, std::move(chunk));
+			  }).Than(query);
+		});
+		bytes_written += required_bytes;
+		continue;
+	  }
+
+	  // Place the chunk on the cache and use it
+	  cache.Push(std::move(chunk));
+	  if (cache.Size() >= required_bytes) {
+		result = blob_statement_([&](Query &query) {
+		  return query.Set(0, file_id)
+			  .Than([&]() {
+				return query.Set(1, chunk_num++);
+			  }).Than([&]() {
+				return query.Set(2, cache.Pop(required_bytes));
+			  }).Than(query);
+		});
+		bytes_written += required_bytes;
+	  }
+	}
+
+	return result;
+  }, file_size, proposed_chunk_size);
 }
 
 sqlite::Result<sqlite::Database::RowId, sqlite::Status> FileSystem::CreateHeader(const Path &path,

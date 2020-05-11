@@ -37,10 +37,11 @@ class FileSystem {
 
   [[nodiscard]] Result<File> Open(const Path &path) noexcept;
   [[nodiscard]] Result<Chunk> Read(const File &file, int start, int length) const;
-  std::optional<Error> Read(const File &file, int start, int length, std::function<bool(Chunk&&)> callback) const;
+  std::optional<Error> Read(const File &file, int start, int length, std::function<bool(Chunk &&)> callback) const;
 
-  [[nodiscard]] int Size(const File& file);
+  [[nodiscard]] int Size(const File &file);
   Result<File> Create(const Path &path, Chunk &&data, int chunk_size = -1);
+  Result<File> Create(const Path &path, std::function<Chunk(int)> data, int file_size, int chunk_size = -1);
   void Find(const Path &path, std::vector<Path> &files) const noexcept;
   inline void Find(std::vector<Path> &files) const noexcept {
 	this->Find(Path("*"), files);
@@ -60,10 +61,15 @@ class FileSystem {
 																	   int chunk_size,
 																	   FileSystemObjectType type) noexcept;
  private:
-
+  Result<File> Create(const Path &path,
+					  std::function<sqlite::Status(sqlite::Database::RowId, int)> file_creation,
+					  int file_size,
+					  int chunk_size = -1);
   std::optional<Error> Read(const File &file, util::Reader *reader, int start) const;
+
   sqlite::Database database_;
-  sqlite::PreparedStatement handle_statement_, chunk_statement_, header_statement_, blob_statement_, glob_statement_, size_statement_;
+  sqlite::PreparedStatement handle_statement_, chunk_statement_, header_statement_, blob_statement_, glob_statement_,
+	  size_statement_;
   util::MetaTable meta_;
 };
 }
