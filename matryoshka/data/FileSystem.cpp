@@ -371,12 +371,22 @@ std::optional<Error> FileSystem::Read(const File &file, util::Reader *reader, in
 	return Error(errors::Io::OutOfBounds);
   }
 
-  // Read the blobs sequentially
-  if ((*reader)(BlobReader::Open(database_, reader->First(), meta_.Data(), "data"))) {
-	return std::nullopt;
+  // Try to read the first blob
+  auto first_blob = BlobReader::Open(database_, reader->First(), meta_.Data(), "data");
+  if (first_blob) {
+	reader->SetFirstBlob(std::move(std::get<BlobReader>(first_blob)));
   } else {
-	return Error(reader->Error());
+	return Error(std::get<Status>(first_blob));
   }
+
+  // Read the blobs sequentially
+  do {
+	auto tmp_result = (*reader)();
+	if (tmp_result.has_value()) {
+	  return tmp_result.value();
+	}
+  } while (!*reader);
+  return std::nullopt;
 }
 
 std::optional<Error> FileSystem::Read(const File &file,

@@ -25,16 +25,11 @@ class Reader {
   static sqlite::Result<sqlite::PreparedStatement> PrepareStatement(sqlite::Database &database, MetaTable &meta);
 
   explicit Reader(int start = 0);
-  Reader &operator()(sqlite::BlobReader &&blob);
-  Reader &operator()(sqlite::Status status);
+  std::optional<Error> operator()();
 
   sqlite::Status Add(sqlite::Query &query);
   inline void Add(sqlite::Database::RowId blob_id) {
 	blob_indices_.emplace_back(blob_id);
-  }
-
-  inline Reader &operator()(std::variant<sqlite::BlobReader, sqlite::Status> &&first_blob) {
-	return std::visit(*this, std::move(first_blob));
   }
 
   explicit inline operator bool() const noexcept {
@@ -44,10 +39,6 @@ class Reader {
 
   [[nodiscard]] inline sqlite::Database::RowId First() const noexcept {
 	return !blob_indices_.empty() ? blob_indices_[0] : -1;
-  }
-
-  [[nodiscard]] inline Error Error() const noexcept {
-	return error_;
   }
 
   [[nodiscard]] inline int StartOffset() const {
@@ -60,12 +51,16 @@ class Reader {
 	}
   }
 
+  inline void SetFirstBlob(sqlite::BlobReader &&first_blob) {
+	current_blob_.emplace(std::move(first_blob));
+  }
+
  protected:
   virtual sqlite::Status HandleBlob(sqlite::BlobReader &blob, int blob_offset, int bytes_read, int num_bytes) = 0;
 
  private:
+  std::optional<sqlite::BlobReader> current_blob_;
   int bytes_read_, start_offset_, blob_index_;
-  class Error error_;
   std::vector<sqlite::Database::RowId> blob_indices_;
 };
 }

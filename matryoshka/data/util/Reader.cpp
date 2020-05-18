@@ -9,19 +9,30 @@
 
 namespace matryoshka::data::util {
 
-Reader::Reader(int start) : bytes_read_(0), start_offset_(start), blob_index_(0), error_(errors::Io::OutOfBounds) {
+Reader::Reader(int start)
+	: current_blob_(std::nullopt),
+	  bytes_read_(0),
+	  start_offset_(start),
+	  blob_index_(0) {
 
 }
 
-Reader &Reader::operator()(sqlite::BlobReader &&blob) {
+std::optional<Error> Reader::operator()() {
+  if (!current_blob_.has_value()) {
+	return data::Error(errors::Io::OutOfBounds);
+  }
+
+  // Get the current blob and reset its former handle
+  auto blob = std::move(current_blob_.value());
+  current_blob_.reset();
+
   int num_bytes = std::min(blob.Size(), this->Length() - bytes_read_);
   sqlite::Status status;
   if (blob_index_ == 0) {
 	num_bytes = std::min(blob.Size() - start_offset_, num_bytes);
 	if (num_bytes == 0) {
 	  // Handle the out-of-bound case, when the chunks are not all completely filled
-	  error_ = data::Error(errors::Io::OutOfBounds);
-	  return *this;
+	  return data::Error(errors::Io::OutOfBounds);
 	}
 	status = this->HandleBlob(blob, start_offset_, 0, num_bytes);
   } else {
@@ -31,16 +42,15 @@ Reader &Reader::operator()(sqlite::BlobReader &&blob) {
   ++blob_index_;
 
   if (!status) {
-	(*this)(status);
+	return data::Error(status);
   } else if (!*this && blob_indices_.size() > blob_index_) {
-	std::visit(*this, sqlite::BlobReader::Open(std::move(blob), blob_indices_[blob_index_]));
+	auto next_blob = sqlite::BlobReader::Open(std::move(blob), blob_indices_[blob_index_]);
+	if (!next_blob) {
+	  return Error(std::get<sqlite::Status>(next_blob));
+	}
+	current_blob_.emplace(std::move(std::get<sqlite::BlobReader>(next_blob)));
   }
-  return *this;
-}
-
-Reader &Reader::operator()(sqlite::Status status) {
-  error_ = data::Error(status);
-  return *this;
+  return std::nullopt;
 }
 
 sqlite::Status Reader::Add(sqlite::Query &query) {
