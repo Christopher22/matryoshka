@@ -397,6 +397,15 @@ std::optional<Error> FileSystem::Read(const File &file,
   std::ofstream output_file(file_path.data(),
 							std::ifstream::out | std::ifstream::binary
 								| (truncate ? std::ifstream::trunc : std::ifstream::app));
+
+  // This may inform the file system about the expected file size
+  output_file.seekp(length - 1);
+  output_file.write("1", 1);
+  output_file.seekp(0);
+  if (!output_file) {
+	return Error(errors::Io::WritingError);
+  }
+
   if (output_file) {
 	auto result = this->Read(file, start, length, [&](Chunk data) {
 	  output_file.write(reinterpret_cast<const char *>(data.Data()), data.Size());
