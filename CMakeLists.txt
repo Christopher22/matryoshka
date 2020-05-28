@@ -15,6 +15,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(BUILD_TESTING ON)
 set(BUILD_CLI OFF)
 set(BUILD_WEBDAV OFF)
+set(BUILD_SHARED OFF)
 
 # Use conan with cmake
 if (NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
@@ -55,6 +56,18 @@ endif ()
 if (BUILD_CLI)
     add_executable(MatryoshkaCLI matryoshka/cli.cpp)
     target_link_libraries(MatryoshkaCLI Matryoshka CONAN_PKG::CLI11)
+endif ()
+
+# Build library for the command language runtime, if required
+if (BUILD_SHARED)
+    include(GenerateExportHeader)
+    set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+    set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
+
+    add_library(MatryoshkaShared SHARED matryoshka/shared/Api.cpp matryoshka/shared/Api.h)
+    target_link_libraries(MatryoshkaShared Matryoshka)
+    target_include_directories(MatryoshkaShared PRIVATE ${PROJECT_BINARY_DIR})
+    GENERATE_EXPORT_HEADER(MatryoshkaShared BASE_NAME Matryoshka)
 endif ()
 
 # Build WebDAV, if required
