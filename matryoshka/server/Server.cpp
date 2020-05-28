@@ -18,6 +18,7 @@ restinio::request_handling_status_t Server::operator()(restinio::request_handle_
 	return this->handle_query(std::move(req));
   }
 
+  // TODO: OPTIONS, PROPFIND, MKCOL, DELETE, MOVE, PUT
   return req->create_response(restinio::status_not_implemented()).done();
 }
 
