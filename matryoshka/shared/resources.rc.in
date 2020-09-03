@@ -1,0 +1,29 @@
+#include <windows.h>
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     @Matryoshka_VERSION_MAJOR@,@Matryoshka_VERSION_MINOR@,@Matryoshka_VERSION_PATCH@,@Matryoshka_VERSION_TWEAK@
+PRODUCTVERSION  @Matryoshka_VERSION_MAJOR@,@Matryoshka_VERSION_MINOR@,@Matryoshka_VERSION_PATCH@,@Matryoshka_VERSION_TWEAK@
+FILETYPE VFT_DLL
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904E4"
+        BEGIN
+            VALUE "CompanyName",        "@Matryoshka_AUTHOR@"
+            VALUE "FileDescription",    "Matryoshka"
+            VALUE "FileVersion",        "Matryoshka"
+            VALUE "InternalName",       "Matryoshka"
+            VALUE "LegalCopyright",     "Copyright (c) 2020 @Matryoshka_AUTHOR@"
+            VALUE "LegalTrademarks1",   "All Rights Reserved"
+            VALUE "LegalTrademarks2",   "All Rights Reserved"
+            VALUE "OriginalFilename",   "Matryoshka.dll"
+            VALUE "ProductName",        "Matryoshka"
+            VALUE "ProductVersion",     "@Matryoshka_VERSION_MAJOR@.@Matryoshka_VERSION_MINOR@.@Matryoshka_VERSION_PATCH@.@Matryoshka_VERSION_TWEAK@\0"
+        END
+    END
+
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1252
+    END
+END

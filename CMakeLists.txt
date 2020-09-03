@@ -7,15 +7,18 @@ You should have received a copy of the GNU Affero General Public License along w
 #]]
 
 cmake_minimum_required(VERSION 3.15)
-project(Matryoshka)
-include(CTest)
+project(Matryoshka VERSION 0.1.0.0 DESCRIPTION "Embedding files into SQLite databases" HOMEPAGE_URL "https://github.com/Christopher22/matryoshka")
+set(Matryoshka_AUTHOR "Christopher Gundler")
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(BUILD_TESTING ON)
-set(BUILD_CLI OFF)
-set(BUILD_WEBDAV OFF)
-set(BUILD_SHARED OFF)
+# Create a nice build dir without any cache files on CMake
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Matryoshka_${Matryoshka_VERSION_MAJOR}_${Matryoshka_VERSION_MINOR}_${Matryoshka_VERSION_PATCH}_${Matryoshka_VERSION_TWEAK}")
+
+option(BUILD_TESTING "Build tests" OFF)
+option(BUILD_CLI "Build CLI client" OFF)
+option(BUILD_WEBDAV "Build WebDAV server" OFF)
+option(BUILD_SHARED "Build shared library" ON)
 
 # Use conan with cmake
 if (NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
@@ -37,15 +40,17 @@ if (BUILD_WEBDAV)
     conan_add_remote(NAME stiffstream URL https://api.bintray.com/conan/stiffstream/public)
     list(APPEND MATRYOSHKA_DEPENDENCIES restinio/0.6.6@stiffstream/stable CLI11/1.9.0@cliutils/stable)
 endif ()
-conan_cmake_run(REQUIRES ${MATRYOSHKA_DEPENDENCIES} BASIC_SETUP CMAKE_TARGETS BUILD missing)
+conan_cmake_run(REQUIRES ${MATRYOSHKA_DEPENDENCIES} BASIC_SETUP CMAKE_TARGETS NO_OUTPUT_DIRS BUILD missing)
 
 # Build Matryoshka library
 add_library(Matryoshka matryoshka/data/sqlite/Database.cpp matryoshka/data/sqlite/Database.h matryoshka/data/sqlite/PreparedStatement.cpp matryoshka/data/sqlite/PreparedStatement.h matryoshka/data/sqlite/Query.cpp matryoshka/data/sqlite/Query.h matryoshka/data/sqlite/Blob.h matryoshka/data/sqlite/Status.h matryoshka/data/sqlite/Status.cpp matryoshka/data/sqlite/BlobReader.cpp matryoshka/data/sqlite/BlobReader.h matryoshka/data/Path.cpp matryoshka/data/Path.h matryoshka/data/FileSystemObject.h matryoshka/data/File.h matryoshka/data/Folder.h matryoshka/data/util/MetaTable.cpp matryoshka/data/util/MetaTable.h matryoshka/data/sqlite/Result.h matryoshka/data/sqlite/Transaction.cpp matryoshka/data/sqlite/Transaction.h matryoshka/data/Error.cpp matryoshka/data/Error.h matryoshka/data/util/ContinuousReader.cpp matryoshka/data/util/ContinuousReader.h matryoshka/data/FileSystem.cpp matryoshka/data/FileSystem.h matryoshka/data/util/Reader.cpp matryoshka/data/util/Reader.h matryoshka/data/util/ChunkReader.cpp matryoshka/data/util/ChunkReader.h matryoshka/data/util/Cache.cpp matryoshka/data/util/Cache.h)
 target_link_libraries(Matryoshka CONAN_PKG::sqlite3)
+set_target_properties(Matryoshka PROPERTIES PREFIX "static_")
 
 # Build tests, if required
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
-    MESSAGE(STATUS "Build tests")
+    include(CTest)
+    MESSAGE(STATUS "Building tests")
 
     add_executable(MatryoshkaTest tests/main.cpp tests/Sqlite.h tests/MetaTable.h tests/FileSystem.h tests/Cache.h)
     target_link_libraries(MatryoshkaTest Matryoshka CONAN_PKG::doctest)
@@ -54,24 +59,35 @@ endif ()
 
 # Build command line interface, if required
 if (BUILD_CLI)
+    MESSAGE(STATUS "Building CLI")
+
     add_executable(MatryoshkaCLI matryoshka/cli.cpp)
     target_link_libraries(MatryoshkaCLI Matryoshka CONAN_PKG::CLI11)
 endif ()
 
 # Build library for the command language runtime, if required
 if (BUILD_SHARED)
+    MESSAGE(STATUS "Building shared library")
+
     include(GenerateExportHeader)
     set(CMAKE_CXX_VISIBILITY_PRESET hidden)
     set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
 
-    add_library(MatryoshkaShared SHARED matryoshka/shared/Api.cpp matryoshka/shared/Api.h)
+    # Write the set the current version of the DLL
+    configure_file(matryoshka/shared/resources.rc.in ${CMAKE_CURRENT_BINARY_DIR}/resources.rc @ONLY)
+
+    add_library(MatryoshkaShared SHARED ${CMAKE_CURRENT_BINARY_DIR}/resources.rc matryoshka/shared/Api.cpp matryoshka/shared/Api.h)
     target_link_libraries(MatryoshkaShared Matryoshka)
+    set_target_properties(MatryoshkaShared PROPERTIES OUTPUT_NAME "Matryoshka")
+    generate_export_header(MatryoshkaShared BASE_NAME Matryoshka)
+    # Required for 'matryoshka_export.h'
     target_include_directories(MatryoshkaShared PRIVATE ${PROJECT_BINARY_DIR})
-    GENERATE_EXPORT_HEADER(MatryoshkaShared BASE_NAME Matryoshka)
 endif ()
 
 # Build WebDAV, if required
 if (BUILD_WEBDAV)
+    MESSAGE(STATUS "Building web server")
+
     # ASIO wants the current windows version - set it.
     # Adopted from https://stackoverflow.com/questions/9742003/platform-detection-in-cmake
     if (WIN32)
