@@ -105,6 +105,13 @@ TEST_CASE ("Reading") {
   CHECK(!file_system.Read(file, "test2.tmp", 0, data.Size(), true).has_value());
   CHECK(Blob<true>("test2.tmp") == data);
 
+  // Check direct read from database to local file system with an non-existing folder
+  CHECK(!file_system.Read(file, "nonexisting_folder/test2.tmp", 0, data.Size(), true, true).has_value());
+  CHECK(Blob<true>("nonexisting_folder/test2.tmp") == data);
+  auto read_missing_parent = file_system.Read(file, "nonexisting_folder2/test2.tmp", 0, data.Size(), true, false);
+  CHECK(read_missing_parent.has_value());
+  CHECK(read_missing_parent.value() == matryoshka::data::Error(matryoshka::data::errors::Io::FileCreationFailed));
+
   // Read full data
   matryoshka::data::Result<matryoshka::data::FileSystem::Chunk> read_blob = file_system.Read(file, 0, data.Size());
   CHECK(read_blob == data);

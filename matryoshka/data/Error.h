@@ -23,6 +23,7 @@ enum class Io {
   InvalidDatabaseVersion,
   FileNotFound,
   FileCreationFailed,
+  DirectoryCreationFailed,
   FileExists,
   ReadingError,
   WritingError,

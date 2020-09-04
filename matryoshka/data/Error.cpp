@@ -24,6 +24,7 @@ std::string_view Error::ErrorPrinter::operator()(errors::Io &io_error) const noe
 	case errors::Io::ReadingError: return "Unable to read file from local file system";
 	case errors::Io::WritingError: return "Unable to write file to local file system";
 	case errors::Io::FileCreationFailed: return "Unable to create the file";
+	case errors::Io::DirectoryCreationFailed: return "Unable to create parent directories";
 	default: return "Unknown error occurred";
   }
 }

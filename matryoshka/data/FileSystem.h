@@ -49,7 +49,8 @@ class FileSystem {
 										  std::string_view file_path,
 										  int start,
 										  int length,
-										  bool truncate = true) const;
+										  bool truncate = true,
+										  bool create_parents = true) const;
 
   [[nodiscard]] int Size(const File &file);
   Result<File> Create(const Path &path, Chunk &&data, int chunk_size = -1);

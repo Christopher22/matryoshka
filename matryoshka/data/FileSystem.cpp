@@ -20,6 +20,7 @@ You should have received a copy of the GNU Affero General Public License along w
 #include <numeric>
 #include <algorithm>
 #include <fstream>
+#include <filesystem>
 
 using namespace matryoshka::data::sqlite;
 
@@ -397,7 +398,22 @@ std::optional<Error> FileSystem::Read(const File &file,
 									  std::string_view file_path,
 									  int start,
 									  int length,
-									  bool truncate) const {
+									  bool truncate,
+									  bool create_parents) const {
+  // Create the required parent directories if they do not exists.
+  const std::filesystem::path filesystem_path(file_path), parent = filesystem_path.parent_path();
+  if (!std::filesystem::is_directory(parent)) {
+	if (create_parents) {
+	  std::error_code code;
+	  std::filesystem::create_directories(parent, code);
+	  if (code) {
+		return Error(errors::Io::DirectoryCreationFailed);
+	  }
+	} else {
+	  return Error(errors::Io::FileCreationFailed);
+	}
+  }
+
   std::ofstream output_file(file_path.data(),
 							std::ifstream::out | std::ifstream::binary
 								| (truncate ? std::ifstream::trunc : std::ifstream::app));
