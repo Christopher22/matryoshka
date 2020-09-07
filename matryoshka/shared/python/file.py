@@ -1,6 +1,6 @@
 import ctypes
 from pathlib import Path
-from typing import Sequence
+from typing import Sequence, Optional
 
 from matryoshka import Matryoshka
 from status import Status
@@ -97,7 +97,7 @@ class File(ApiElement):
         self,
         file_system: FileSystem,
         path: Path,
-        existing_handle: HANDLE_TYPE = HANDLE_TYPE(),
+        existing_handle: Optional[HANDLE_TYPE] = None,
     ):
         """
         Create a new file. The file is not opened!
@@ -108,7 +108,9 @@ class File(ApiElement):
         super().__init__(file_system.matryoshka)
         self.path = path
         self.file_system = file_system
-        self.handle = existing_handle
+        self.handle = (
+            existing_handle if existing_handle is not None else File.HANDLE_TYPE()
+        )
 
     @classmethod
     def initialize(cls, matryoshka: Matryoshka):

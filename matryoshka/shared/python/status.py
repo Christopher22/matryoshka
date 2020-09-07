@@ -1,4 +1,5 @@
 import ctypes
+from typing import Optional
 
 from matryoshka import Matryoshka
 from api_element import ApiElement
@@ -15,7 +16,7 @@ class Status(ApiElement):
     # The underlying type of handle
     HANDLE_TYPE = ctypes.POINTER(Status)
 
-    def __init__(self, matryoshka: Matryoshka, handle: HANDLE_TYPE = HANDLE_TYPE()):
+    def __init__(self, matryoshka: Matryoshka, handle: Optional[HANDLE_TYPE] = None):
         """
         Create a new status.
         :param matryoshka: The shared library.
@@ -23,7 +24,7 @@ class Status(ApiElement):
         """
 
         super().__init__(matryoshka)
-        self.handle = handle
+        self.handle = handle if handle is not None else Status.HANDLE_TYPE()
 
     @classmethod
     def initialize(cls, matryoshka: Matryoshka):
