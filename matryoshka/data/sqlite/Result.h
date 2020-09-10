@@ -81,7 +81,7 @@ class Result : public std::variant<T, S> {
   }
 
   inline bool operator!=(const S &value) const {
-	return !(rhs == *this);
+	return !(value == *this);
   }
 
   inline bool operator==(const T &value) const {
@@ -90,7 +90,7 @@ class Result : public std::variant<T, S> {
   }
 
   inline bool operator!=(const T &value) const {
-	return !(rhs == *this);
+	return !(value == *this);
   }
 
   bool operator==(const Result<T, S> &rhs) const {
