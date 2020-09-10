@@ -15,11 +15,18 @@ class sqlite3_stmt;
 #include <cstdint>
 #include <memory>
 #include <tuple>
+#include <type_traits>
 
 #include "Status.h"
 #include "Blob.h"
 
 namespace matryoshka::data::sqlite {
+
+namespace values {
+template<typename T>
+struct Value : std::false_type {};
+}
+
 class Query {
  public:
   enum class ValueType {
@@ -72,37 +79,8 @@ class Query {
 
   template<typename T>
   [[nodiscard]] inline T Get(int index) const {
-	static_assert(false, "Reading of this type is not supported.");
-  }
-
-  template<>
-  [[nodiscard]] inline int Get(int index) const {
-	return this->GetInteger(index);
-  }
-
-  template<>
-  [[nodiscard]] inline double Get(int index) const {
-	return this->GetDouble(index);
-  }
-
-  template<>
-  [[nodiscard]] inline std::string_view Get(int index) const {
-	return this->GetText(index);
-  }
-
-  template<>
-  [[nodiscard]] inline std::string Get(int index) const {
-	return std::string(this->GetText(index));
-  }
-
-  template<>
-  [[nodiscard]] inline Blob<false> Get(int index) const {
-	return this->GetData(index);
-  }
-
-  template<>
-  [[nodiscard]] inline Blob<true> Get(int index) const {
-	return Blob<true>(this->GetData(index));
+	static_assert(values::Value<T>::value, "The requested type is not supported.");
+	return values::Value<T>::Read(this, index);
   }
 
   [[nodiscard]] ValueType Type(int index) const noexcept;
@@ -113,12 +91,67 @@ class Query {
   [[nodiscard]] std::string_view GetText(int index) const;
   [[nodiscard]] Blob<false> GetData(int index) const;
 
+  friend class values::Value<int>;
+  friend class values::Value<double>;
+  friend class values::Value<std::string_view>;
+  friend class values::Value<Blob<false>>;
+  friend class values::Value<std::string>;
+  friend class values::Value<Blob<true>>;
+
  private:
   static void _deleteBlob(void *data);
   int _getIndex(std::string_view name);
 
   sqlite3_stmt *prepared_statement_;
 };
+
+/**
+ * This namespace contains all the values which might be read directly from the database.
+ */
+namespace values {
+template<>
+struct Value<int> : std::true_type {
+  [[nodiscard]] static inline int Read(const Query *query, int index) {
+	return query->GetInteger(index);
+  }
+};
+
+template<>
+struct Value<double> : std::true_type {
+  [[nodiscard]] static inline double Read(const Query *query, int index) {
+	return query->GetDouble(index);
+  }
+};
+
+template<>
+struct Value<std::string_view> : std::true_type {
+  [[nodiscard]] static inline std::string_view Read(const Query *query, int index) {
+	return query->GetText(index);
+  }
+};
+
+template<>
+struct Value<Blob<false>> : std::true_type {
+  [[nodiscard]] static inline Blob<false> Read(const Query *query, int index) {
+	return query->GetData(index);
+  }
+};
+
+template<>
+struct Value<std::string> : std::true_type {
+  [[nodiscard]] static inline std::string Read(const Query *query, int index) {
+	return std::string(query->GetText(index));
+  }
+};
+
+template<>
+struct Value<Blob<true>> : std::true_type {
+  [[nodiscard]] static inline Blob<true> Read(const Query *query, int index) {
+	return Blob<true>(query->GetData(index));
+  }
+};
+}
+
 }
 
 #endif //MATRYOSHKA_MATRYOSHKA_DATA_QUERY_H_

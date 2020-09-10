@@ -10,6 +10,7 @@ You should have received a copy of the GNU Affero General Public License along w
 #define MATRYOSHKA_MATRYOSHKA_DATA_SQLITE_BLOB_H_
 
 #include <cassert>
+#include <cstring>
 #include <fstream>
 
 namespace matryoshka::data::sqlite {
