@@ -26,3 +26,4 @@ jobs:
         with:
           configure-options: -DBUILD_TESTING=1
           run-test: true
+          ctest-options: --extra-verbose
