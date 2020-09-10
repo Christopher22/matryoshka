@@ -308,7 +308,7 @@ Result<File> FileSystem::Create(const Path &path, std::string_view file_path, in
 	Error *error = nullptr;
 	if ((error = std::get_if<Error>(&result)) != nullptr) {
 	  Status *code = nullptr;
-	  if ((code = std::get_if<Status>(error)) != nullptr && *code == Status::Aborted()) {
+	  if ((code = error->get<Status>()) != nullptr && *code == Status::Aborted()) {
 		return Result<File>::Fail(errors::Io::ReadingError);
 	  }
 	}

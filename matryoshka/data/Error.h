@@ -38,8 +38,40 @@ struct ArgumentError {
 };
 }
 
-class Error : public std::variant<errors::Backend, errors::Io, errors::ArgumentError> {
+class Error {
  public:
+  constexpr explicit Error(errors::ArgumentError backend_error) noexcept: data_(backend_error) {}
+
+  constexpr explicit Error(errors::Backend backend_error) noexcept: data_(backend_error) {}
+
+  constexpr explicit Error(errors::Io io_error) noexcept: data_(io_error) {}
+
+  template<typename T>
+  constexpr explicit Error(sqlite::Result<T> &result) noexcept: data_(static_cast<sqlite::Status>(result)) {}
+
+  [[nodiscard]] inline static std::string_view Message(Error &&error) noexcept {
+	return std::visit(ErrorPrinter(), error.data_);
+  }
+
+  inline friend std::ostream &operator<<(std::ostream &output, const Error &error) {
+	output << Error::Message(Error(error));
+	return output;
+  }
+
+  inline bool operator==(const Error &rhs) const {
+	return data_ == rhs.data_;
+  }
+
+  inline bool operator!=(const Error &rhs) const {
+	return !(rhs == *this);
+  }
+
+  template<typename T>
+  [[nodiscard]] inline T *get() noexcept {
+	return std::get_if<T>(&data_);
+  }
+
+ private:
   class ErrorPrinter {
    public:
 	constexpr ErrorPrinter() = default;
@@ -48,27 +80,7 @@ class Error : public std::variant<errors::Backend, errors::Io, errors::ArgumentE
 	std::string_view operator()(errors::ArgumentError &io_error) const noexcept;
   };
 
-  constexpr explicit Error(errors::ArgumentError backend_error) noexcept:
-	  std::variant<errors::Backend, errors::Io, errors::ArgumentError>(backend_error) {}
-
-  constexpr explicit Error(errors::Backend backend_error) noexcept:
-	  std::variant<errors::Backend, errors::Io, errors::ArgumentError>(backend_error) {}
-
-  constexpr explicit Error(errors::Io io_error) noexcept:
-	  std::variant<errors::Backend, errors::Io, errors::ArgumentError>(io_error) {}
-
-  template<typename T>
-  constexpr explicit Error(sqlite::Result<T> &result) noexcept:
-	  std::variant<errors::Backend, errors::Io, errors::ArgumentError>(static_cast<sqlite::Status>(result)) {}
-
-  [[nodiscard]] inline static std::string_view Message(Error &&error) noexcept {
-	return std::visit(ErrorPrinter(), error);
-  }
-
-  inline friend std::ostream &operator<<(std::ostream &output, const Error &error) {
-	output << Error::Message(Error(error));
-	return output;
-  }
+  std::variant<errors::Backend, errors::Io, errors::ArgumentError> data_;
 };
 
 }
