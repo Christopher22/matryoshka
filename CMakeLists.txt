@@ -7,10 +7,19 @@ You should have received a copy of the GNU Affero General Public License along w
 #]]
 
 cmake_minimum_required(VERSION 3.15)
-project(Matryoshka VERSION 0.1.1.3 DESCRIPTION "Embedding files into SQLite databases" HOMEPAGE_URL "https://github.com/Christopher22/matryoshka")
+project(Matryoshka VERSION 0.1.1.4 DESCRIPTION "Embedding files into SQLite databases" HOMEPAGE_URL "https://github.com/Christopher22/matryoshka")
 set(Matryoshka_AUTHOR "Christopher Gundler")
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# Check if link time optimization might be enabled
+include(CheckIPOSupported)
+check_ipo_supported(RESULT INTERPROCEDURAL_IS_SUPPORTED)
+if (INTERPROCEDURAL_IS_SUPPORTED)
+    message(STATUS "Using interprocedual optimizations")
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+endif ()
 
 # Create a nice build dir without any cache files on CMake
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Matryoshka_${Matryoshka_VERSION_MAJOR}_${Matryoshka_VERSION_MINOR}_${Matryoshka_VERSION_PATCH}_${Matryoshka_VERSION_TWEAK}")
@@ -19,8 +28,6 @@ option(BUILD_TESTING "Build tests" OFF)
 option(BUILD_CLI "Build CLI client" OFF)
 option(BUILD_WEBDAV "Build WebDAV server" OFF)
 option(BUILD_SHARED "Build shared library" ON)
-
-set(BUILD_TESTING ON)
 
 # Use conan with cmake
 if (NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
