@@ -63,7 +63,7 @@ if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
 
     add_executable(MatryoshkaTest tests/main.cpp tests/Sqlite.h tests/MetaTable.h tests/FileSystem.h tests/Cache.h)
     target_link_libraries(MatryoshkaTest Matryoshka CONAN_PKG::doctest)
-    add_test(CMakeMatryoshkaTest COMMAND MatryoshkaTest WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+    add_test(NAME CMakeMatryoshkaTest COMMAND MatryoshkaTest WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif ()
 
 # Build command line interface, if required
