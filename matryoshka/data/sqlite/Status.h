@@ -20,7 +20,7 @@ class Status {
   [[nodiscard]] static Status Aborted() noexcept;
 
   template<typename C>
-  inline Status Than(C &callback) const noexcept {
+  inline Status Than(C &&callback) const noexcept {
 	return *this ? callback() : *this;
   }
 
