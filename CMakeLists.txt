@@ -7,7 +7,7 @@ You should have received a copy of the GNU Affero General Public License along w
 #]]
 
 cmake_minimum_required(VERSION 3.15)
-project(Matryoshka VERSION 0.1.1.4 DESCRIPTION "Embedding files into SQLite databases" HOMEPAGE_URL "https://github.com/Christopher22/matryoshka")
+project(Matryoshka VERSION 0.1.1.5 DESCRIPTION "Embedding files into SQLite databases" HOMEPAGE_URL "https://github.com/Christopher22/matryoshka")
 set(Matryoshka_AUTHOR "Christopher Gundler")
 
 set(CMAKE_CXX_STANDARD 17)
@@ -63,15 +63,7 @@ if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
 
     add_executable(MatryoshkaTest tests/main.cpp tests/Sqlite.h tests/MetaTable.h tests/FileSystem.h tests/Cache.h)
     target_link_libraries(MatryoshkaTest Matryoshka CONAN_PKG::doctest)
-    add_test(test_build
-            "${CMAKE_COMMAND}"
-            --build "${CMAKE_BINARY_DIR}"
-            --config "$<CONFIG>"
-            --target MatryoshkaTest
-            )
-    set_tests_properties(test_build PROPERTIES FIXTURES_SETUP test_fixture)
-    add_test(MatryoshkaTest MatryoshkaTest)
-    set_tests_properties(MatryoshkaTest PROPERTIES FIXTURES_REQUIRED test_fixture)
+    add_test(CMakeMatryoshkaTest COMMAND MatryoshkaTest WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif ()
 
 # Build command line interface, if required
