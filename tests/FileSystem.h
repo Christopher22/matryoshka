@@ -102,7 +102,8 @@ TEST_CASE ("Reading") {
   CHECK(file_system.Size(file) == data.Size());
 
   // Check direct read from database to local file system
-  CHECK(!file_system.Read(file, "test2.tmp", 0, data.Size(), true).has_value());
+  auto read_status = file_system.Read(file, "test2.tmp", 0, data.Size(), true);
+  REQUIRE_MESSAGE(!read_status.has_value(), read_status);
   CHECK(Blob<true>("test2.tmp") == data);
 
   // Check direct read from database to local file system with an non-existing folder
