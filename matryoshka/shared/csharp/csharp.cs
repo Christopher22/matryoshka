@@ -194,7 +194,7 @@ namespace matryoshka {
                 Native.Status* status;
                 Native.FileSystem* file_system = handle_.GetHandle();
                 Native.FileHandle* file = Native.Open(file_system, path, &status);
-                if (file_system == null) {
+                if (file == null) {
                     using (handles.StatusHandle handle = new handles.StatusHandle(status)) {
                         throw new MatryoshkaException(handle);
                     }
@@ -209,7 +209,7 @@ namespace matryoshka {
                 Native.Status* status;
                 Native.FileSystem* file_system = handle_.GetHandle();
                 Native.FileHandle* file = Native.Push(file_system, inner_path, path, chunk_size, &status);
-                if (file_system == null) {
+                if (file == null) {
                     using (handles.StatusHandle handle = new handles.StatusHandle(status)) {
                         throw new MatryoshkaException(handle);
                     }
