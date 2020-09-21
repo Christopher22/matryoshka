@@ -22,7 +22,14 @@ Database::Database(sqlite3 *database) noexcept: database_(database) {
 
 Result<Database> Database::Create(std::string_view path) noexcept {
   sqlite3 *database;
-  Status status(sqlite3_open_v2(path.data(), &database, SQLITE_OPEN_READWRITE, nullptr));
+
+  auto status = Status(sqlite3_open_v2(path.data(), &database, SQLITE_OPEN_READWRITE, nullptr)
+  ).Than([database] {
+	return Status(sqlite3_db_config(database, SQLITE_DBCONFIG_ENABLE_FKEY, 1, nullptr));
+  }).Than([database] {
+	return Status(sqlite3_db_config(database, SQLITE_DBCONFIG_TRUSTED_SCHEMA, 0, nullptr));
+  });
+
   if (status) {
 	return Result<Database>(Database(database));
   } else {
