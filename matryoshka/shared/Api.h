@@ -22,13 +22,13 @@ struct FileHandle;
  * @param status Contains the error code of the failure if and only if the return value is nullptr. Setting this value to nullptr is safe and will not save the error code.
  * @return A pointer to the virtual file system or nullptr on failure.
  */
-MATRYOSHKA_EXPORT FileSystem * Load(const char *path, Status **status);
+MATRYOSHKA_EXPORT FileSystem *Load(const char *path, Status **status);
 
 /**
  * Destroy a file system.
  * @param file_system The virtual file system. Passing nullptr is a safe no-op.
  */
-MATRYOSHKA_EXPORT void DestroyFileSystem(FileSystem * file_system);
+MATRYOSHKA_EXPORT void DestroyFileSystem(FileSystem *file_system);
 
 /**
  * Destroy a status.
@@ -56,7 +56,7 @@ MATRYOSHKA_EXPORT const char *GetMessage(Status *status);
  * @param status Contains the error code of the failure if and only if the return value is nullptr. Setting this value to nullptr is safe and will not save the error code.
  * @return A handle to the file or nullptr at failure.
  */
-MATRYOSHKA_EXPORT FileHandle * Open(FileSystem * file_system , const char *path, Status * * status ) ;
+MATRYOSHKA_EXPORT FileHandle *Open(FileSystem *file_system, const char *path, Status **status);
 
 /**
  * Push a file to the virtual file system.
@@ -67,11 +67,11 @@ MATRYOSHKA_EXPORT FileHandle * Open(FileSystem * file_system , const char *path,
  * @param status Contains the error code of the failure if and only if the return value is nullptr. Setting this value to nullptr is safe and will not save the error code.
  * @return A handle to the newly created file or nullptr on failure.
  */
-MATRYOSHKA_EXPORT FileHandle * Push(FileSystem * file_system ,
-const char *inner_path,
-const char *file_path,
-int chunk_size,
-	Status * * status ) ;
+MATRYOSHKA_EXPORT FileHandle *Push(FileSystem *file_system,
+								   const char *inner_path,
+								   const char *file_path,
+								   int chunk_size,
+								   Status **status);
 
 /**
  * Pull a file from the database into the virtual file system.
@@ -80,9 +80,9 @@ int chunk_size,
  * @param file_path The path on the real file system.
  * @return A error ocurring during operation or nullptr on success.
  */
-MATRYOSHKA_EXPORT Status * Pull(FileSystem * file_system ,
-FileHandle *inner_path,
-const char *file_path ) ;
+MATRYOSHKA_EXPORT Status *Pull(FileSystem *file_system,
+							   FileHandle *inner_path,
+							   const char *file_path);
 
 /**
  * Search for a specific file(s).
@@ -91,9 +91,9 @@ const char *file_path ) ;
  * @param callback A callback for each path found.
  * @return The number of paths found.
  */
-MATRYOSHKA_EXPORT int Find(FileSystem * file_system,
-const char *path,
-void (*callback)(const char *)) ;
+MATRYOSHKA_EXPORT int Find(FileSystem *file_system,
+						   const char *path,
+						   void (*callback)(const char *));
 
 /**
  * Returns the size of a file.
@@ -101,7 +101,15 @@ void (*callback)(const char *)) ;
  * @param file A handle to the file.
  * @return File size in bytes.
  */
-MATRYOSHKA_EXPORT int GetSize(FileSystem * file_system, FileHandle * file);
+MATRYOSHKA_EXPORT int GetSize(FileSystem *file_system, FileHandle *file);
+
+/**
+ * Delete a file. The file handle must not be used after the call but still needs to be freed.
+ * @param file_system A pointer to the virtual file system.
+ * @param file A handle to the file.
+ * @return 1 if operation was successful, 0 otherwise.
+ */
+MATRYOSHKA_EXPORT int Delete(FileSystem *file_system, FileHandle *file);
 
 };
 

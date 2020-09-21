@@ -47,6 +47,10 @@ class FileSystemObject {
 	id_ = -1;
   }
 
+  inline explicit operator bool() noexcept {
+	return id_ >= 0;
+  }
+
  protected:
   constexpr explicit FileSystemObject(HandleType id) noexcept: id_(id) {}
 

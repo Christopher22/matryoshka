@@ -85,8 +85,8 @@ const char *GetMessage(Status *status) {
 }
 
 FileHandle *Open(FileSystem *file_system,
-				 const char *path, Status
-				 **status) {
+				 const char *path,
+				 Status **status) {
   if (file_system == nullptr || path == nullptr) {
 	return HandleError<FileHandle>(status, matryoshka::data::errors::ArgumentError());
   }
@@ -120,7 +120,7 @@ FileHandle *Push(FileSystem *file_system,
 }
 
 Status *Pull(FileSystem *file_system, FileHandle *file, const char *file_path) {
-  if (file_system == nullptr || file == nullptr || file_path == nullptr) {
+  if (file_system == nullptr || file == nullptr || file_path == nullptr || !static_cast<bool>(file->file_)) {
 	return new Status(matryoshka::data::Error(matryoshka::data::errors::ArgumentError()));
   }
 
@@ -150,10 +150,15 @@ int Find(FileSystem *file_system, const char *path, void (*callback)(const char 
 }
 
 int GetSize(FileSystem *file_system, FileHandle *file) {
-  if (file == nullptr || file_system == nullptr) {
+  if (file == nullptr || file_system == nullptr || !static_cast<bool>(file->file_)) {
 	return 0;
   }
   return file_system->file_system_.Size(file->file_);
 }
 
+int Delete(FileSystem *file_system, FileHandle *file) {
+  return (file == nullptr || file_system == nullptr || !static_cast<bool>(file->file_)
+	  || !file_system->file_system_.Delete(std::move(file->file_))
+		 ) ? 0 : 1;
+}
 

@@ -60,6 +60,9 @@ namespace matryoshka {
 
         [DllImport("matryoshka.dll")]
         public static extern int GetSize(FileSystem* file_system, FileHandle* file);
+
+        [DllImport("matryoshka.dll")]
+        public static extern int Delete(FileSystem* file_system, FileHandle* file);
     }
 
     /// <summary>
@@ -259,6 +262,12 @@ namespace matryoshka {
                         throw new MatryoshkaException(handle);
                     }
                 }
+            }
+        }
+
+        public bool Delete() {
+            unsafe {
+                return Native.Delete(parent_.GetHandle(), handle_.GetHandle()) == 1;
             }
         }
 
