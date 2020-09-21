@@ -29,7 +29,7 @@ namespace matryoshka {
         public unsafe struct FileHandle { };
 
         [DllImport("matryoshka.dll")]
-        public static extern FileSystem* Load(string path, Status** status);
+        public static extern FileSystem* Load([MarshalAs(UnmanagedType.LPUTF8Str)] string path, Status** status);
 
         [DllImport("matryoshka.dll")]
         public static extern void DestroyFileSystem(FileSystem* file_system);
