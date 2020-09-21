@@ -52,7 +52,20 @@ class FileSystem {
 										  bool truncate = true,
 										  bool create_parents = true) const;
 
+  /**
+   * Query the size of a file.
+   * @param file The opened and valid file handle.
+   * @return The size of the file in bytes.
+   */
   [[nodiscard]] int Size(const File &file);
+
+  /**
+   * Delete a file in the database. The file handle is moved and must not be used.
+   * @param file The opened and valid file.
+   * @return True, if deleting the file was successful.
+   */
+  bool Delete(File &&file);
+
   Result<File> Create(const Path &path, Chunk &&data, int chunk_size = -1);
   Result<File> Create(const Path &path, std::string_view file_path, int chunk_size = -1);
   Result<File> Create(const Path &path, std::function<Chunk(int)> data, int file_size, int chunk_size = -1);
@@ -69,6 +82,7 @@ class FileSystem {
 			 sqlite::PreparedStatement &&blob_statement,
 			 sqlite::PreparedStatement &&glob_statement_,
 			 sqlite::PreparedStatement &&size_statement_,
+			 sqlite::PreparedStatement &&delete_statement_,
 			 util::MetaTable meta_table) noexcept;
 
   sqlite::Result<sqlite::Database::RowId, sqlite::Status> CreateHeader(const Path &path,
@@ -83,7 +97,7 @@ class FileSystem {
 
   sqlite::Database database_;
   sqlite::PreparedStatement handle_statement_, chunk_statement_, header_statement_, blob_statement_, glob_statement_,
-	  size_statement_;
+	  size_statement_, delete_statement_;
   util::MetaTable meta_;
 };
 }

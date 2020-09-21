@@ -33,6 +33,7 @@ FileSystem::FileSystem(sqlite::Database &&database,
 					   sqlite::PreparedStatement &&blob_statement,
 					   sqlite::PreparedStatement &&glob_statement,
 					   sqlite::PreparedStatement &&size_statement,
+					   sqlite::PreparedStatement &&delete_statement,
 					   util::MetaTable meta_table) noexcept
 	: database_(std::move(database)),
 	  handle_statement_(std::move(handle_statement)),
@@ -41,6 +42,7 @@ FileSystem::FileSystem(sqlite::Database &&database,
 	  blob_statement_(std::move(blob_statement)),
 	  glob_statement_(std::move(glob_statement)),
 	  size_statement_(std::move(size_statement)),
+	  delete_statement_(std::move(delete_statement)),
 	  meta_(std::move(meta_table)) {
   assert(handle_statement_ && chunk_statement_ && header_statement_ && blob_statement_ && glob_statement_
 			 && size_statement_);
@@ -53,6 +55,7 @@ FileSystem::FileSystem(FileSystem &&other) noexcept: database_(std::move(other.d
 													 blob_statement_(std::move(other.blob_statement_)),
 													 glob_statement_(std::move(other.glob_statement_)),
 													 size_statement_(std::move(other.size_statement_)),
+													 delete_statement_(std::move(other.delete_statement_)),
 													 meta_(std::move(other.meta_)) {
 }
 
@@ -60,10 +63,11 @@ Result<FileSystem> FileSystem::Open(sqlite::Database &&database) noexcept {
   static constexpr std::string_view SQL_CREATE_META =
 	  "CREATE TABLE {meta} (id INTEGER PRIMARY KEY, path TEXT UNIQUE NOT NULL, type INTEGER, flags INTEGER, chunk_size INTEGER NOT NULL)";
   static constexpr std::string_view SQL_CREATE_DATA =
-	  "CREATE TABLE IF NOT EXISTS {data} (chunk_id INTEGER PRIMARY KEY, file_id INTEGER NOT NULL, chunk_num INTEGER NOT NULL, data BLOB NOT NULL, CONSTRAINT unq UNIQUE (file_id, chunk_num), FOREIGN KEY(file_id) REFERENCES {meta} (id))";
+	  "CREATE TABLE IF NOT EXISTS {data} (chunk_id INTEGER PRIMARY KEY, file_id INTEGER NOT NULL, chunk_num INTEGER NOT NULL, data BLOB NOT NULL, CONSTRAINT unq UNIQUE (file_id, chunk_num), FOREIGN KEY(file_id) REFERENCES {meta} (id) ON DELETE CASCADE ON UPDATE CASCADE)";
   static constexpr std::string_view SQL_GET_HANDLE = "SELECT id FROM {meta} WHERE path = ? AND type = ?";
   static constexpr std::string_view SQL_GLOB = "SELECT path FROM {meta} WHERE path GLOB ? AND type = ?";
   static constexpr std::string_view SQL_SIZE = "SELECT COALESCE(SUM(LENGTH(data)), -1) FROM {data} WHERE file_id = ?";
+  static constexpr std::string_view SQL_DELETE = "DELETE FROM {meta} WHERE id = ?";
 
   auto meta = util::MetaTable::Load(database);
   if (!meta.empty() && meta[0].Id() != CURRENT_VERSION) {
@@ -92,6 +96,7 @@ Result<FileSystem> FileSystem::Open(sqlite::Database &&database) noexcept {
 	  sqlite::PreparedStatement::Insert(database, meta[0].Data(), {"file_id", "chunk_num", "data"});
   auto glob_statement = sqlite::PreparedStatement::Create(database, meta[0].Format(SQL_GLOB));
   auto size_statement = sqlite::PreparedStatement::Create(database, meta[0].Format(SQL_SIZE));
+  auto delete_statement = sqlite::PreparedStatement::Create(database, meta[0].Format(SQL_DELETE));
 
   Status status = sqlite::Result<>::Check(handle_statement,
 										  chunk_statement,
@@ -108,6 +113,7 @@ Result<FileSystem> FileSystem::Open(sqlite::Database &&database) noexcept {
 										 sqlite::Result<>::Get(std::move(insert_blob_statement)),
 										 sqlite::Result<>::Get(std::move(glob_statement)),
 										 sqlite::Result<>::Get(std::move(size_statement)),
+										 sqlite::Result<>::Get(std::move(delete_statement)),
 										 meta[0]));
   } else {
 	return Result<FileSystem>::Fail(status);
@@ -355,6 +361,10 @@ void FileSystem::Find(const Path &path, std::vector<Path> &files) const noexcept
 
 int FileSystem::Size(const File &file) {
   return size_statement_.Execute<int>(file.Handle()).value();
+}
+
+bool FileSystem::Delete(File &&file) {
+  return !delete_statement_.Execute<int>(file.Handle()).has_value();
 }
 
 std::optional<Error> FileSystem::Read(const File &file, util::Reader *reader, int start) const {

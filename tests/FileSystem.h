@@ -175,6 +175,13 @@ TEST_CASE ("Reading") {
   CHECK(read_blob->Size() == 2);
   CHECK(read_blob->operator[](0) == 15);
   CHECK(read_blob->operator[](1) == 16);
+
+  // Check delete in all different chunked conditions
+  Path second_file("second_file/no_delete");
+  REQUIRE(file_system.Create(second_file, data.Copy()));
+  REQUIRE(file_system.Delete(std::move(file)));
+  CHECK(file_system.Open(path) == Error(errors::Io::FileNotFound));
+  CHECK(file_system.Open(second_file));
 }
 
 TEST_CASE ("Multiple files") {
