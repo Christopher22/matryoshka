@@ -9,6 +9,8 @@ You should have received a copy of the GNU Affero General Public License along w
 #ifndef MATRYOSHKA_TESTS_FILESYSTEM_H_
 #define MATRYOSHKA_TESTS_FILESYSTEM_H_
 
+#include <filesystem>
+
 #include <doctest/doctest.h>
 
 #include "../matryoshka/data/FileSystem.h"
@@ -254,6 +256,27 @@ TEST_CASE ("Multiple files") {
   CHECK(std::find(paths.begin(), paths.end(), path_3) != paths.end());
   CHECK(std::find(paths.begin(), paths.end(), path_4) != paths.end());
   CHECK(std::find(paths.begin(), paths.end(), path_5) != paths.end());
+}
+
+TEST_CASE ("Empty files") {
+auto database = std::get<Database>(Database::Create());
+auto file_system_container = FileSystem::Open(std::move(database));
+REQUIRE_MESSAGE(file_system_container, file_system_container);
+auto file_system = std::get<FileSystem>(std::move(file_system_container));
+
+Blob<true> empty_blob;
+REQUIRE(empty_blob.Save("empty_file_1"));
+
+auto file_container = file_system.Create(Path("data_empty"), "empty_file_1", 0);
+REQUIRE_MESSAGE(file_container, file_container);
+auto file = std::get<File>(std::move(file_container));
+
+CHECK(file_system.Size(file) == 0);
+
+REQUIRE(!std::filesystem::exists("empty_file_2"));
+auto result = file_system.Read(file, "empty_file_2", 0, 0);
+REQUIRE(!result.has_value());
+REQUIRE(std::filesystem::exists("empty_file_2"));
 }
 }
 

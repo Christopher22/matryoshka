@@ -66,7 +66,7 @@ Result<FileSystem> FileSystem::Open(sqlite::Database &&database) noexcept {
 	  "CREATE TABLE IF NOT EXISTS {data} (chunk_id INTEGER PRIMARY KEY, file_id INTEGER NOT NULL, chunk_num INTEGER NOT NULL, data BLOB NOT NULL, CONSTRAINT unq UNIQUE (file_id, chunk_num), FOREIGN KEY(file_id) REFERENCES {meta} (id) ON DELETE CASCADE ON UPDATE CASCADE)";
   static constexpr std::string_view SQL_GET_HANDLE = "SELECT id FROM {meta} WHERE path = ? AND type = ?";
   static constexpr std::string_view SQL_GLOB = "SELECT path FROM {meta} WHERE path GLOB ? AND type = ?";
-  static constexpr std::string_view SQL_SIZE = "SELECT COALESCE(SUM(LENGTH(data)), -1) FROM {data} WHERE file_id = ?";
+  static constexpr std::string_view SQL_SIZE = "SELECT COALESCE(SUM(LENGTH(data)), 0) FROM {data} WHERE file_id = ?";
   static constexpr std::string_view SQL_DELETE = "DELETE FROM {meta} WHERE id = ?";
 
   auto meta = util::MetaTable::Load(database);
@@ -427,6 +427,15 @@ std::optional<Error> FileSystem::Read(const File &file,
   std::ofstream output_file(file_path.data(),
 							std::ifstream::out | std::ifstream::binary
 								| (truncate ? std::ifstream::trunc : std::ifstream::app));
+
+  // It is completely valid to have a file without content. But we need to handle this edge case.
+  if (length <= 0) {
+	if (output_file) {
+	  return {};
+	} else {
+	  return Error(errors::Io::FileCreationFailed);
+	}
+  }
 
   // This may inform the file system about the expected file size
   output_file.seekp(length - 1);

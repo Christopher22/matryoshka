@@ -7,7 +7,7 @@ You should have received a copy of the GNU Affero General Public License along w
 #]]
 
 cmake_minimum_required(VERSION 3.15)
-project(Matryoshka VERSION 0.2.0.0 DESCRIPTION "Embedding files into SQLite databases" HOMEPAGE_URL "https://github.com/Christopher22/matryoshka")
+project(Matryoshka VERSION 0.2.1.0 DESCRIPTION "Embedding files into SQLite databases" HOMEPAGE_URL "https://github.com/Christopher22/matryoshka")
 set(Matryoshka_AUTHOR "Christopher Gundler")
 
 set(CMAKE_CXX_STANDARD 17)
